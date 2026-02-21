@@ -162,7 +162,7 @@ def check_for_duplicate_lottery_numbers(students_by_grade):
 # -------------------------
 # Scheduling Function
 # -------------------------
-def run_lottery_for_grade(students):
+def run_lottery(students):
     students_sorted = sorted(students, key=lambda s: s.lottery_number)
     num_choices = len(students_sorted[0].choices)
 
@@ -179,10 +179,10 @@ def run_lottery_for_grade(students):
 # -------------------------
 # Run Scheduling
 # -------------------------
-run_lottery_for_grade(students_by_grade[12])
-run_lottery_for_grade(students_by_grade[11])
-run_lottery_for_grade(students_by_grade[10])
-run_lottery_for_grade(students_by_grade[9])
+run_lottery(students_by_grade[12])
+run_lottery(students_by_grade[11])
+run_lottery(students_by_grade[10])
+run_lottery(students_by_grade[9])
 
 # -------------------------
 # Output Results
