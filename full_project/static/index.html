@@ -2,102 +2,196 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Davidson Schedule Maker</title>
+    <title>Schedule Maker — Student Portal</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+
     <style>
       :root{
         --bg:#0b0f17;
-        --card:#121826;
-        --card2:#0f1422;
+        --panel:#0f1522;
+        --card:#121a2a;
+        --card2:#0e1422;
         --text:#e8eefc;
         --muted:#a7b3d4;
         --line: rgba(255,255,255,.10);
-        --line2: rgba(255,255,255,.14);
+        --line2: rgba(255,255,255,.16);
         --accent:#7aa2ff;
+        --accent2:#a78bfa;
         --good:#43d19e;
         --warn:#ffcc66;
         --bad:#ff6b6b;
-        --chip:#1b2440;
-        --chip2:#182039;
-        --shadow: 0 10px 30px rgba(0,0,0,.35);
-        --radius: 14px;
+        --shadow: 0 14px 36px rgba(0,0,0,.40);
+        --radius: 16px;
+        --radius2: 12px;
+        --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New";
       }
-      * { box-sizing: border-box; }
+
+      [data-theme="light"]{
+        --bg:#f5f7fb;
+        --panel:#ffffff;
+        --card:#ffffff;
+        --card2:#ffffff;
+        --text:#0b1220;
+        --muted:#4a5878;
+        --line: rgba(15,20,34,.10);
+        --line2: rgba(15,20,34,.16);
+        --accent:#315efb;
+        --accent2:#7c3aed;
+        --shadow: 0 14px 36px rgba(15,20,34,.12);
+      }
+
+      *{ box-sizing:border-box; }
+      html, body{ height:100%; }
       body{
         margin:0;
         font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial;
-        background: radial-gradient(1000px 500px at 20% -20%, rgba(122,162,255,.35), transparent 55%),
-                    radial-gradient(900px 500px at 90% 0%, rgba(67,209,158,.22), transparent 60%),
-                    var(--bg);
+        background:
+          radial-gradient(900px 450px at 20% -25%, rgba(122,162,255,.30), transparent 55%),
+          radial-gradient(900px 520px at 95% 0%, rgba(67,209,158,.18), transparent 60%),
+          radial-gradient(700px 420px at 80% 120%, rgba(167,139,250,.16), transparent 60%),
+          var(--bg);
         color: var(--text);
       }
-      a{ color: var(--accent); text-decoration: none; }
+
+      a{ color: var(--accent); text-decoration:none; }
+      code, pre{ font-family: var(--mono); }
+      button, input, select, textarea { font-family: inherit; }
+
       .wrap{
-        max-width: 1180px;
+        max-width: 1240px;
         margin: 0 auto;
-        padding: 22px 18px 60px;
+        padding: 18px 16px 60px;
       }
-      header{
+
+      .topbar{
         display:flex;
-        align-items:flex-start;
+        align-items:center;
         justify-content:space-between;
-        gap:16px;
-        margin-bottom: 18px;
+        gap:12px;
+        flex-wrap:wrap;
+        margin-bottom: 14px;
+      }
+      .brand{
+        display:flex;
+        gap:10px;
+        align-items:center;
+        min-width: 280px;
+      }
+      .logo{
+        width: 38px;
+        height: 38px;
+        border-radius: 14px;
+        background:
+          radial-gradient(circle at 30% 30%, rgba(255,255,255,.28), transparent 55%),
+          linear-gradient(180deg, rgba(122,162,255,.55), rgba(122,162,255,.10));
+        border:1px solid rgba(122,162,255,.45);
+        box-shadow: var(--shadow);
       }
       .brand h1{
         margin:0;
-        font-size: 22px;
+        font-size: 18px;
         letter-spacing: .2px;
+        line-height: 1.1;
       }
       .brand .sub{
-        margin-top:6px;
+        margin-top: 2px;
+        font-size: 12px;
         color: var(--muted);
-        font-size: 13px;
-        line-height:1.35;
       }
-      .topActions{
+      .actions{
         display:flex;
-        gap:10px;
-        flex-wrap: wrap;
+        gap: 10px;
+        align-items:center;
+        flex-wrap:wrap;
         justify-content:flex-end;
       }
+
       button{
         border:1px solid var(--line2);
         background: rgba(255,255,255,.06);
         color: var(--text);
         padding: 10px 12px;
-        border-radius: 12px;
+        border-radius: 14px;
         cursor:pointer;
-        transition: .15s;
-        box-shadow: none;
+        transition: transform .12s, border-color .12s, background .12s;
+        user-select:none;
       }
-      button:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,.22); }
+      button:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,.25); }
+      button:disabled{ opacity:.50; cursor:not-allowed; transform:none; }
       button.primary{
-        background: linear-gradient(180deg, rgba(122,162,255,.25), rgba(122,162,255,.10));
+        background: linear-gradient(180deg, rgba(122,162,255,.26), rgba(122,162,255,.12));
         border-color: rgba(122,162,255,.45);
       }
       button.good{
-        background: linear-gradient(180deg, rgba(67,209,158,.25), rgba(67,209,158,.10));
+        background: linear-gradient(180deg, rgba(67,209,158,.26), rgba(67,209,158,.12));
         border-color: rgba(67,209,158,.45);
       }
       button.danger{
-        background: linear-gradient(180deg, rgba(255,107,107,.25), rgba(255,107,107,.10));
+        background: linear-gradient(180deg, rgba(255,107,107,.24), rgba(255,107,107,.10));
         border-color: rgba(255,107,107,.45);
       }
       button.ghost{
         background: transparent;
       }
-      .grid{
+
+      input, select, textarea{
+        background: rgba(255,255,255,.06);
+        border: 1px solid var(--line2);
+        color: var(--text);
+        border-radius: 14px;
+        padding: 10px 10px;
+        outline: none;
+        min-height: 40px;
+      }
+      input::placeholder, textarea::placeholder{ color: rgba(167,179,212,.72); }
+      textarea{ min-height: 92px; resize: vertical; }
+
+      .pill{
+        display:inline-flex;
+        align-items:center;
+        gap:8px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border:1px solid var(--line);
+        background: rgba(255,255,255,.06);
+        font-size: 12px;
+        color: var(--muted);
+        white-space: nowrap;
+      }
+      .pill.good{ color: var(--good); border-color: rgba(67,209,158,.35); background: rgba(67,209,158,.10); }
+      .pill.warn{ color: var(--warn); border-color: rgba(255,204,102,.35); background: rgba(255,204,102,.10); }
+      .pill.bad{ color: var(--bad); border-color: rgba(255,107,107,.35); background: rgba(255,107,107,.10); }
+
+      .tag{
+        display:inline-flex;
+        align-items:center;
+        gap:6px;
+        font-size: 12px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(255,255,255,.06);
+        border:1px solid var(--line);
+        color: var(--muted);
+        white-space: nowrap;
+      }
+      .tag.good{ color: var(--good); border-color: rgba(67,209,158,.30); background: rgba(67,209,158,.08); }
+      .tag.warn{ color: var(--warn); border-color: rgba(255,204,102,.30); background: rgba(255,204,102,.08); }
+      .tag.bad{ color: var(--bad); border-color: rgba(255,107,107,.30); background: rgba(255,107,107,.08); }
+
+      .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+      .field{ display:flex; flex-direction:column; gap:6px; }
+      .field label{ font-size: 12px; color: var(--muted); }
+
+      .layout{
         display:grid;
-        grid-template-columns: 1.05fr .95fr;
-        gap: 16px;
+        grid-template-columns: 360px 1fr;
+        gap: 14px;
         align-items:start;
       }
-      @media (max-width: 980px){
-        .grid{ grid-template-columns: 1fr; }
-        header{ flex-direction: column; align-items: stretch; }
-        .topActions{ justify-content:flex-start; }
+      @media (max-width: 1020px){
+        .layout{ grid-template-columns: 1fr; }
       }
+
       .card{
         background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
         border:1px solid var(--line);
@@ -106,72 +200,88 @@
         overflow:hidden;
       }
       .cardHead{
-        padding: 14px 14px 10px;
+        padding: 12px 14px;
         border-bottom: 1px solid var(--line);
+        background: rgba(0,0,0,.10);
         display:flex;
         align-items:center;
         justify-content:space-between;
         gap:12px;
+        flex-wrap:wrap;
       }
+      [data-theme="light"] .cardHead{ background: rgba(15,20,34,.03); }
       .cardHead h2{
         margin:0;
-        font-size: 15px;
+        font-size: 14px;
         letter-spacing:.2px;
       }
       .cardBody{ padding: 14px; }
-      .muted{ color: var(--muted); }
-      .row{
-        display:flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        align-items:center;
-      }
-      input, select{
-        background: rgba(255,255,255,.06);
-        border: 1px solid var(--line2);
-        color: var(--text);
-        border-radius: 12px;
-        padding: 10px 10px;
-        outline: none;
-        min-height: 40px;
-      }
-      input::placeholder{ color: rgba(167,179,212,.70); }
-      .field{
-        display:flex;
-        flex-direction:column;
-        gap:6px;
-      }
-      .field label{
+
+      .hint{
         font-size: 12px;
-        color: var(--muted);
+        color: rgba(167,179,212,.88);
+        line-height: 1.35;
       }
-      .pill{
-        display:inline-flex;
+      [data-theme="light"] .hint{ color: rgba(74,88,120,.92); }
+
+      .divider{ height:1px; background: var(--line); margin: 10px 0; }
+
+      .stepper{
+        display:flex;
+        gap:8px;
+        flex-wrap:wrap;
         align-items:center;
-        gap:6px;
-        padding: 6px 10px;
-        background: rgba(255,255,255,.06);
+      }
+      .step{
+        display:flex;
+        align-items:center;
+        gap:10px;
+        padding: 8px 10px;
+        border-radius: 14px;
         border:1px solid var(--line);
-        border-radius: 999px;
-        font-size: 12px;
-        color: var(--muted);
+        background: rgba(255,255,255,.04);
+        cursor:pointer;
+        user-select:none;
       }
-      .pill.good{ color: var(--good); border-color: rgba(67,209,158,.35); background: rgba(67,209,158,.10); }
-      .pill.warn{ color: var(--warn); border-color: rgba(255,204,102,.35); background: rgba(255,204,102,.10); }
-      .pill.bad{ color: var(--bad); border-color: rgba(255,107,107,.35); background: rgba(255,107,107,.10); }
-      .tiny{ font-size: 12px; }
-      .divider{
-        height:1px; background: var(--line); margin: 12px 0;
+      .step:hover{ border-color: rgba(255,255,255,.22); }
+      .step.active{
+        border-color: rgba(122,162,255,.45);
+        background: rgba(122,162,255,.12);
+      }
+      .step .num{
+        width: 26px; height: 26px;
+        border-radius: 10px;
+        display:flex; align-items:center; justify-content:center;
+        font-weight:700;
+        color: var(--accent);
+        background: rgba(122,162,255,.14);
+        border:1px solid rgba(122,162,255,.28);
+        flex: 0 0 auto;
+      }
+      .step .txt{ display:flex; flex-direction:column; gap:2px; min-width: 0; }
+      .step .txt b{ font-size: 12px; letter-spacing:.2px; }
+      .step .txt span{
+        font-size: 11px;
+        color: var(--muted);
+        white-space: nowrap;
+        overflow:hidden;
+        text-overflow: ellipsis;
+        max-width: 180px;
       }
 
-      /* Course list */
+      .tab{ display:none; }
+      .tab.active{ display:block; }
+
       .courseList{
         display:flex;
         flex-direction:column;
         gap:10px;
-        max-height: 66vh;
+        max-height: 64vh;
         overflow:auto;
         padding-right: 6px;
+      }
+      @media (max-width: 1020px){
+        .courseList{ max-height: 50vh; }
       }
       .courseItem{
         background: rgba(0,0,0,.14);
@@ -182,21 +292,24 @@
         flex-direction:column;
         gap: 10px;
       }
+      [data-theme="light"] .courseItem{ background: rgba(15,20,34,.03); }
       .courseTop{
         display:flex;
         justify-content:space-between;
         gap:10px;
+        flex-wrap:wrap;
       }
       .courseTitle{
         display:flex;
         flex-direction:column;
         gap:4px;
-        min-width: 0;
+        min-width: 220px;
+        flex: 1 1 260px;
       }
       .courseTitle .code{
-        font-weight: 700;
+        font-weight: 800;
         letter-spacing:.2px;
-        font-size: 13px;
+        font-size: 12px;
         display:flex;
         gap:8px;
         align-items:center;
@@ -204,54 +317,47 @@
       }
       .courseTitle .name{
         font-size: 13px;
-        color: var(--text);
         opacity:.95;
         white-space: nowrap;
         overflow:hidden;
         text-overflow: ellipsis;
       }
-      .courseMeta{
-        display:flex;
-        gap: 8px;
-        flex-wrap: wrap;
-      }
-      .chips{
+      .miniMeta{
         display:flex;
         gap:8px;
         flex-wrap:wrap;
+        align-items:center;
+        color: var(--muted);
+        font-size: 12px;
       }
       .chip{
-        background: var(--chip);
+        background: rgba(255,255,255,.05);
         border:1px solid rgba(255,255,255,.10);
-        color: var(--muted);
         border-radius: 999px;
         padding: 6px 10px;
         font-size: 12px;
+        color: var(--muted);
+        white-space: nowrap;
       }
-      .chip b{ color: var(--text); font-weight: 600; }
-      .courseActions{
-        display:flex;
-        gap: 8px;
-        flex-wrap: wrap;
-        justify-content:flex-end;
-      }
-      .courseActions button{
-        padding: 8px 10px;
-        border-radius: 12px;
-      }
+      .chip b{ color: var(--text); font-weight: 700; }
 
-      /* Planner */
-      .plannerGrid{
-        display:grid;
-        grid-template-columns: 1fr;
-        gap: 10px;
+      .courseBtns{
+        display:flex;
+        gap:8px;
+        flex-wrap:wrap;
+        justify-content:flex-end;
+        align-items:flex-start;
       }
+      .courseBtns button{ padding: 8px 10px; border-radius: 12px; }
+
+      .plannerGrid{ display:grid; grid-template-columns: 1fr; gap: 10px; }
       .roundCard{
         background: rgba(0,0,0,.14);
         border:1px solid var(--line);
         border-radius: 14px;
         overflow:hidden;
       }
+      [data-theme="light"] .roundCard{ background: rgba(15,20,34,.03); }
       .roundHead{
         padding: 10px 12px;
         display:flex;
@@ -261,25 +367,10 @@
         border-bottom: 1px solid var(--line);
         background: rgba(255,255,255,.03);
       }
-      .roundHead .left{
-        display:flex; gap:10px; align-items:center; flex-wrap:wrap;
-      }
-      .roundHead h3{
-        margin:0;
-        font-size: 13px;
-        letter-spacing:.2px;
-      }
-      .roundBody{
-        padding: 10px 12px 12px;
-        display:flex;
-        flex-direction:column;
-        gap: 10px;
-      }
-      .pickList{
-        display:flex;
-        flex-direction:column;
-        gap: 8px;
-      }
+      .roundHead .left{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+      .roundHead h3{ margin:0; font-size: 13px; letter-spacing:.2px; }
+      .roundBody{ padding: 10px 12px 12px; display:flex; flex-direction:column; gap: 10px; }
+      .pickList{ display:flex; flex-direction:column; gap: 8px; }
       .pick{
         display:flex;
         align-items:center;
@@ -290,12 +381,7 @@
         border:1px solid rgba(255,255,255,.10);
         background: rgba(255,255,255,.04);
       }
-      .pick .left{
-        display:flex;
-        gap:10px;
-        align-items:flex-start;
-        min-width: 0;
-      }
+      .pick .left{ display:flex; gap:10px; align-items:flex-start; min-width: 0; }
       .rank{
         width: 28px; height: 28px;
         border-radius: 10px;
@@ -303,15 +389,10 @@
         border:1px solid rgba(122,162,255,.28);
         color: var(--accent);
         display:flex; align-items:center; justify-content:center;
-        font-weight:700;
+        font-weight:800;
         flex: 0 0 auto;
       }
-      .pickInfo{
-        display:flex;
-        flex-direction:column;
-        gap:3px;
-        min-width: 0;
-      }
+      .pickInfo{ display:flex; flex-direction:column; gap:3px; min-width: 0; }
       .pickInfo .line1{
         font-size: 12px;
         color: var(--muted);
@@ -321,55 +402,24 @@
       }
       .pickInfo .line2{
         font-size: 13px;
-        color: var(--text);
         white-space: nowrap;
         overflow:hidden;
         text-overflow: ellipsis;
       }
-      .pickBtns{
-        display:flex;
-        gap:6px;
-        flex: 0 0 auto;
+      .pickBtns{ display:flex; gap:6px; flex: 0 0 auto; }
+      .pickBtns button{ padding: 8px 10px; }
+      .emptyState{ color: var(--muted); font-size: 13px; padding: 8px 2px; }
+
+      .reviewGrid{
+        display:grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        align-items:start;
       }
-      .pickBtns button{
-        padding: 8px 10px;
-      }
-      .emptyState{
-        color: var(--muted);
-        font-size: 13px;
-        padding: 8px 2px;
+      @media (max-width: 900px){
+        .reviewGrid{ grid-template-columns: 1fr; }
       }
 
-      /* Toast / status */
-      .statusBar{
-        display:flex;
-        align-items:center;
-        justify-content:space-between;
-        gap:10px;
-        padding: 10px 12px;
-        border-top: 1px solid var(--line);
-        background: rgba(0,0,0,.12);
-      }
-      .statusBar .left{
-        display:flex; gap:10px; align-items:center; flex-wrap:wrap;
-      }
-      .errorBox{
-        margin-top: 10px;
-        padding: 10px 12px;
-        border-radius: 12px;
-        border:1px solid rgba(255,107,107,.35);
-        background: rgba(255,107,107,.10);
-        color: var(--bad);
-        white-space: pre-wrap;
-        display:none;
-      }
-
-      /* Results */
-      .results{
-        display:flex;
-        flex-direction:column;
-        gap:10px;
-      }
       table{
         width:100%;
         border-collapse: collapse;
@@ -388,140 +438,199 @@
         color: var(--muted);
         background: rgba(255,255,255,.03);
       }
-      tr:last-child td{ border-bottom: none; }
-      .kpi{
-        display:flex;
-        gap:10px;
-        flex-wrap:wrap;
-        align-items:center;
+      tr:last-child td{ border-bottom:none; }
+
+      .week{
+        display:grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 10px;
       }
-      .kpi .pill{ background: rgba(255,255,255,.05); }
-      .hint{
-        font-size: 12px;
-        color: rgba(167,179,212,.85);
-        line-height: 1.35;
+      @media (max-width: 900px){
+        .week{ grid-template-columns: 1fr; }
       }
-      .tag{
-        display:inline-flex;
-        align-items:center;
-        gap:6px;
-        font-size: 12px;
-        padding: 6px 10px;
-        border-radius: 999px;
-        background: rgba(255,255,255,.06);
+      .dayCol{
         border:1px solid var(--line);
-        color: var(--muted);
+        border-radius: 14px;
+        overflow:hidden;
+        background: rgba(255,255,255,.03);
       }
-      .tag.good{ color: var(--good); border-color: rgba(67,209,158,.30); background: rgba(67,209,158,.08); }
-      .tag.warn{ color: var(--warn); border-color: rgba(255,204,102,.30); background: rgba(255,204,102,.08); }
-      .tag.bad{ color: var(--bad); border-color: rgba(255,107,107,.30); background: rgba(255,107,107,.08); }
-      .footerNote{
-        margin-top: 14px;
-        color: rgba(167,179,212,.75);
+      .dayCol .head{
+        padding: 10px;
+        border-bottom: 1px solid var(--line);
+        color: var(--muted);
         font-size: 12px;
-        line-height: 1.4;
+        background: rgba(0,0,0,.10);
+      }
+      [data-theme="light"] .dayCol .head{ background: rgba(15,20,34,.03); }
+      .dayCol .body{
+        padding: 10px;
+        display:flex;
+        flex-direction:column;
+        gap:8px;
+        min-height: 90px;
+      }
+      .slot{
+        border:1px solid rgba(255,255,255,.12);
+        background: rgba(255,255,255,.04);
+        border-radius: 12px;
+        padding: 8px 10px;
+        font-size: 12px;
+      }
+      .slot b{ display:block; font-size: 12px; }
+      .slot span{ color: var(--muted); display:block; margin-top: 2px; }
+
+      .modalBackdrop{
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,.55);
+        display:none;
+        align-items:center;
+        justify-content:center;
+        padding: 18px;
+        z-index: 50;
+      }
+      .modal{
+        width: min(860px, 100%);
+        border-radius: 18px;
+        border:1px solid var(--line);
+        background: var(--panel);
+        box-shadow: 0 24px 70px rgba(0,0,0,.55);
+        overflow:hidden;
+      }
+      .modalHead{
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--line);
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:10px;
+        background: rgba(255,255,255,.03);
+      }
+      .modalHead h3{ margin:0; font-size: 14px; }
+      .modalBody{
+        padding: 14px;
+        display:grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      @media (max-width: 860px){
+        .modalBody{ grid-template-columns: 1fr; }
+      }
+      .monoBox{
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--muted);
+        border:1px solid var(--line);
+        background: rgba(0,0,0,.12);
+        border-radius: 14px;
+        padding: 10px;
+        white-space: pre-wrap;
+      }
+      [data-theme="light"] .monoBox{ background: rgba(15,20,34,.04); }
+
+      .toast{
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        z-index: 60;
+        display:none;
+        max-width: min(560px, calc(100vw - 32px));
+        padding: 10px 12px;
+        border-radius: 14px;
+        border:1px solid var(--line);
+        background: rgba(0,0,0,.35);
+        backdrop-filter: blur(10px);
+        box-shadow: var(--shadow);
+        color: var(--text);
+        font-size: 13px;
+      }
+      [data-theme="light"] .toast{ background: rgba(255,255,255,.72); }
+      .toast .row{ justify-content: space-between; }
+      .toast .sub{ color: var(--muted); font-size: 12px; margin-top: 6px; line-height:1.35; white-space:pre-wrap; }
+
+      .errorBox{
+        padding: 10px 12px;
+        border-radius: 14px;
+        border:1px solid rgba(255,107,107,.35);
+        background: rgba(255,107,107,.10);
+        color: var(--bad);
+        white-space: pre-wrap;
+        display:none;
+        font-size: 13px;
+      }
+
+      .adminPanel{
+        border: 1px dashed rgba(255,204,102,.35);
+        background: rgba(255,204,102,.08);
+        border-radius: 14px;
+        padding: 10px 12px;
       }
     </style>
   </head>
 
   <body>
     <div class="wrap">
-      <header>
+      <!-- TOPBAR -->
+      <div class="topbar">
         <div class="brand">
-          <h1>Davidson Schedule Maker</h1>
-          <div class="sub">
-            Pick classes like a real student: search → add to your ranked rounds → check conflicts → submit.<br />
-            (This uses your backend endpoints <code>/api/classes</code> and <code>/api/run_lottery</code>.)
+          <div class="logo" aria-hidden="true"></div>
+          <div>
+            <h1>Schedule Maker</h1>
+            <div class="sub">Students submit ranked picks. Admin runs one global lottery. Everyone checks results.</div>
           </div>
         </div>
-        <div class="topActions">
-          <button class="ghost" id="loadBtn">Reload course list</button>
-          <button class="ghost" id="resetBtn">Clear my picks</button>
-          <button class="primary" id="runBtn">Submit my picks</button>
-        </div>
-      </header>
 
-      <div class="grid">
-        <!-- LEFT: Course Browser -->
-        <div class="card">
+        <div class="actions">
+          <span class="pill" id="serverPill">Server: checking…</span>
+          <button class="ghost" id="themeBtn" title="Toggle light/dark">Toggle theme</button>
+          <button class="ghost" id="helpBtn">Help</button>
+          <button class="ghost" id="reloadBtn">Reload courses</button>
+          <button class="ghost" id="exportBtn" title="Export your picks (JSON)">Export</button>
+          <button class="ghost" id="importBtn" title="Import picks (JSON)">Import</button>
+          <button class="danger" id="clearBtn">Clear picks</button>
+          <button class="primary" id="submitBtn">Submit picks</button>
+          <button class="good" id="refreshResultsBtn">Check results</button>
+        </div>
+      </div>
+
+      <!-- STEPPER -->
+      <div class="card" style="margin-bottom: 14px;">
+        <div class="cardHead">
+          <h2>Steps</h2>
+          <div class="stepper" id="stepper"></div>
+        </div>
+        <div class="cardBody">
+          <div class="row">
+            <span class="pill" id="courseCountPill">Courses: 0</span>
+            <span class="pill" id="shownCountPill">Shown: 0</span>
+            <span class="pill" id="uniquePill">Unique picks: 0</span>
+            <span class="pill" id="creditsPill">Credits (unique picks): 0</span>
+            <span class="pill" id="conflictPill">Conflicts: 0</span>
+            <span class="pill" id="dupePill">Duplicates: 0</span>
+            <span class="pill" id="readyPill">Ready: No</span>
+          </div>
+          <div class="divider"></div>
+          <div class="hint">
+            Tips: use <b>/</b> to focus search • <b>Esc</b> closes dialogs • Submit picks first, then check results after the admin runs the global lottery.
+          </div>
+        </div>
+      </div>
+
+      <!-- MAIN LAYOUT -->
+      <div class="layout">
+        <!-- SIDEBAR -->
+        <div class="card sidebar">
           <div class="cardHead">
-            <h2>Find courses</h2>
-            <div class="row">
-              <span class="pill" id="courseCountPill">0 courses</span>
-              <span class="pill" id="filteredCountPill">0 shown</span>
-            </div>
+            <h2>My profile</h2>
+            <span class="pill" id="autosavePill">Autosave: on</span>
           </div>
-
-          <div class="cardBody">
+          <div class="cardBody" style="display:flex; flex-direction:column; gap:12px;">
             <div class="row">
-              <div class="field" style="flex:1 1 260px; min-width: 240px;">
-                <label>Search (subject / title / CRN / instructor)</label>
-                <input id="searchInput" placeholder="e.g. AFR, Intro, 20001, Villar..." />
+              <div class="field" style="flex:1 1 170px;">
+                <label>Student ID</label>
+                <input id="studentId" placeholder="e.g. S001" value="S001" />
               </div>
-
-              <div class="field" style="flex:0 0 150px;">
-                <label>Subject</label>
-                <select id="subjectFilter">
-                  <option value="">All</option>
-                </select>
-              </div>
-
-              <div class="field" style="flex:0 0 150px;">
-                <label>Only show</label>
-                <select id="availabilityFilter">
-                  <option value="all">All courses</option>
-                  <option value="open">Open seats</option>
-                  <option value="tba">TBA/Online</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="divider"></div>
-
-            <div class="row" style="justify-content:space-between; margin-bottom:8px;">
-              <div class="hint">
-                Tip: Use <b>Add to Round 1</b> for your top priority, then Round 2–4 as backups.
-              </div>
-              <div class="row">
-                <span class="tag" id="conflictTag">Conflicts: 0</span>
-              </div>
-            </div>
-
-            <div class="courseList" id="courseList"></div>
-
-            <div class="statusBar">
-              <div class="left">
-                <span class="pill" id="creditsPill">Credits in picks: 0</span>
-                <span class="pill" id="uniquePill">Unique picks: 0</span>
-              </div>
-              <div class="row">
-                <label class="pill" style="gap:8px;">
-                  Force capacity
-                  <input id="forceCap" type="number" value="25" min="1" style="width:76px; padding:6px 8px; border-radius:10px;" />
-                </label>
-              </div>
-            </div>
-
-            <div class="errorBox" id="errorBox"></div>
-          </div>
-        </div>
-
-        <!-- RIGHT: Student Planner -->
-        <div class="card">
-          <div class="cardHead">
-            <h2>My schedule lottery picks</h2>
-            <div class="row">
-              <span class="pill">Student view</span>
-            </div>
-          </div>
-
-          <div class="cardBody">
-            <div class="row">
-              <div class="field" style="flex:1 1 180px; min-width:180px;">
-                <label>Student ID (your name works too)</label>
-                <input id="studentId" value="S001" />
-              </div>
-              <div class="field" style="flex:0 0 130px;">
+              <div class="field" style="flex:0 0 120px;">
                 <label>Grade</label>
                 <select id="grade">
                   <option value="12">12</option>
@@ -530,8 +639,11 @@
                   <option value="9">9</option>
                 </select>
               </div>
-              <div class="field" style="flex:1 1 260px; min-width:240px;">
-                <label>What matters to you?</label>
+            </div>
+
+            <div class="row">
+              <div class="field" style="flex:1 1 220px;">
+                <label>Preference (optional)</label>
                 <select id="preference">
                   <option value="balanced">Balanced (default)</option>
                   <option value="no_mornings">Avoid mornings</option>
@@ -539,65 +651,420 @@
                   <option value="no_friday">Try for no Friday classes</option>
                 </select>
               </div>
+              <div class="field" style="flex:0 0 150px;">
+                <label>Capacity (testing)</label>
+                <input id="forceCap" type="number" value="25" min="1" />
+              </div>
             </div>
 
             <div class="divider"></div>
 
-            <div class="plannerGrid" id="planner"></div>
+            <div class="hint">
+              <b>How this works:</b><br/>
+              1) You build a ranked list for each round.<br/>
+              2) You click <b>Submit picks</b> (saved to the server database).<br/>
+              3) The admin runs <b>one global lottery</b> for everyone.<br/>
+              4) You click <b>Check results</b>.
+            </div>
 
             <div class="divider"></div>
 
-            <div class="kpi">
-              <span class="pill good" id="okPill">Ready: Yes</span>
+            <div class="row" style="justify-content:space-between;">
               <span class="pill" id="roundFillPill">Round fill: 0/0/0/0</span>
-              <span class="pill" id="dupePill">Duplicates: 0</span>
+              <button class="ghost" id="reviewBtn">Go to Review →</button>
             </div>
 
-            <div class="footerNote">
-              Your backend assigns one class per round (if possible). This UI just makes picking and checking conflicts easier.
+            <div class="errorBox" id="errorBox"></div>
+
+            <div class="adminPanel">
+              <div class="row" style="justify-content:space-between;">
+                <span class="pill warn">Admin tools</span>
+                <button class="ghost" id="adminHelpBtn">What is this?</button>
+              </div>
+              <div class="hint" style="margin-top:8px;">
+                This runs the <b>global</b> lottery for all students who submitted picks.
+              </div>
+              <div class="row" style="margin-top:10px;">
+                <button class="primary" id="adminRunBtn">Run Global Lottery</button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div style="height:16px"></div>
-
-      <!-- RESULTS -->
-      <div class="card">
-        <div class="cardHead">
-          <h2>My results</h2>
-          <div class="row">
-            <span class="pill" id="serverStatus">Not submitted yet</span>
+        <!-- MAIN CONTENT -->
+        <div class="card">
+          <div class="cardHead">
+            <h2 id="tabTitle">Browse courses</h2>
+            <div class="row">
+              <span class="pill" id="statusPill">Status: idle</span>
+            </div>
           </div>
-        </div>
-        <div class="cardBody">
-          <div class="results" id="results">
-            <div class="muted tiny">Submit your picks to see assignments and rosters.</div>
+
+          <div class="cardBody">
+            <!-- TAB 0: Browse -->
+            <section class="tab" id="tab-browse">
+              <div class="row">
+                <div class="field" style="flex:1 1 320px; min-width: 240px;">
+                  <label>Search (subject / title / CRN / instructor)</label>
+                  <input id="searchInput" placeholder="Try: AFR, Intro, 20001, Villar..." />
+                </div>
+
+                <div class="field" style="flex:0 0 160px;">
+                  <label>Subject</label>
+                  <select id="subjectFilter">
+                    <option value="">All</option>
+                  </select>
+                </div>
+
+                <div class="field" style="flex:0 0 160px;">
+                  <label>Only show</label>
+                  <select id="availabilityFilter">
+                    <option value="all">All courses</option>
+                    <option value="open">Open seats</option>
+                    <option value="tba">TBA / No time</option>
+                  </select>
+                </div>
+
+                <div class="field" style="flex:0 0 160px;">
+                  <label>Sort by</label>
+                  <select id="sortBy">
+                    <option value="relevance">Relevance</option>
+                    <option value="subject">Subject</option>
+                    <option value="seats">Seats (open first)</option>
+                    <option value="time">Time (earlier first)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="divider"></div>
+
+              <div class="row" style="justify-content:space-between; margin-bottom: 8px;">
+                <div class="hint">
+                  Click a course for details, then add it to Round 1–4. Your picks auto-save locally (and you submit to server when ready).
+                </div>
+                <div class="row">
+                  <span class="tag" id="conflictTag">Conflicts in picks: 0</span>
+                  <span class="tag" id="seatHintTag">Seat hint: —</span>
+                </div>
+              </div>
+
+              <div class="courseList" id="courseList"></div>
+            </section>
+
+            <!-- TAB 1: Picks -->
+            <section class="tab" id="tab-picks">
+              <div class="row" style="justify-content:space-between; margin-bottom: 10px;">
+                <div class="hint">
+                  Reorder within each round using ↑/↓. Avoid duplicates across rounds (duplicates don’t help).
+                </div>
+                <div class="row">
+                  <button class="ghost" id="suggestBtn">Suggest order (preference)</button>
+                  <button class="ghost" id="toBrowseBtn">← Back to Browse</button>
+                </div>
+              </div>
+
+              <div class="plannerGrid" id="planner"></div>
+            </section>
+
+            <!-- TAB 2: Review -->
+            <section class="tab" id="tab-review">
+              <div class="row" style="justify-content:space-between;">
+                <div class="hint">
+                  Review your picks, duplicates, and time conflicts. Then click <b>Submit picks</b> (saves to the server).
+                </div>
+                <div class="row">
+                  <button class="ghost" id="toPicksBtn">← Back to Picks</button>
+                  <button class="primary" id="submitBtn2">Submit picks</button>
+                  <button class="good" id="refreshResultsBtn2">Check results</button>
+                </div>
+              </div>
+
+              <div class="divider"></div>
+
+              <div class="reviewGrid">
+                <div>
+                  <div class="row" style="margin-bottom:8px;">
+                    <span class="pill" id="reviewSummaryPill">Summary</span>
+                  </div>
+                  <table id="reviewTable">
+                    <thead>
+                      <tr>
+                        <th style="width:90px;">Round</th>
+                        <th>Ranked picks</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+
+                  <div class="divider"></div>
+
+                  <div class="row" style="gap:8px;">
+                    <span class="tag" id="reviewDupesTag">Duplicates: 0</span>
+                    <span class="tag" id="reviewConfTag">Conflicts: 0</span>
+                    <span class="tag" id="reviewOpenTag">Open-seat picks: 0</span>
+                  </div>
+                  <div class="hint" style="margin-top:8px;">
+                    Open seats are a hint only. Final assignment happens when the admin runs the global lottery.
+                  </div>
+                </div>
+
+                <div>
+                  <div class="row" style="margin-bottom:8px;">
+                    <span class="pill">Weekly view (from your picks)</span>
+                  </div>
+                  <div class="week" id="weekView"></div>
+
+                  <div class="divider"></div>
+
+                  <div class="field">
+                    <label>Notes to yourself (saved locally)</label>
+                    <textarea id="notes" placeholder="Example: I really want AFR 101. Avoid Friday labs."></textarea>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- TAB 3: Results -->
+            <section class="tab" id="tab-results">
+              <div class="row" style="justify-content:space-between;">
+                <div class="hint">
+                  These are your official assignments from the <b>latest global lottery run</b>.
+                </div>
+                <div class="row">
+                  <button class="ghost" id="backToReviewBtn">← Back to Review</button>
+                  <button class="good" id="refreshResultsBtn3">Refresh</button>
+                </div>
+              </div>
+
+              <div class="divider"></div>
+
+              <div id="resultsArea">
+                <div class="hint" style="color: var(--muted);">No results yet. Submit picks, then check results after the admin runs the global lottery.</div>
+              </div>
+
+              <div class="divider"></div>
+
+              <pre id="resultsBox" class="monoBox" style="display:none;"></pre>
+            </section>
           </div>
         </div>
       </div>
     </div>
 
-    <script>
-      // =========================
-      // Helpers
-      // =========================
-      const $ = (id) => document.getElementById(id);
-      const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+    <!-- MODAL: Course details -->
+    <div class="modalBackdrop" id="modalBackdrop" role="dialog" aria-modal="true" aria-label="Course details">
+      <div class="modal">
+        <div class="modalHead">
+          <h3 id="modalTitle">Course details</h3>
+          <div class="row">
+            <button class="ghost" id="modalCloseBtn">Close (Esc)</button>
+          </div>
+        </div>
+        <div class="modalBody">
+          <div>
+            <div class="row" style="margin-bottom:10px;">
+              <span class="tag" id="modalSeatTag">—</span>
+              <span class="tag" id="modalTimeTag">—</span>
+              <span class="tag" id="modalInstrTag">—</span>
+            </div>
 
-      function setError(msg) {
+            <div class="hint" id="modalDesc">
+              Use the buttons on the right to add this course to a round.
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="row">
+              <button class="primary" id="modalAddR1">Add to Round 1</button>
+              <button id="modalAddR2">Add to Round 2</button>
+              <button id="modalAddR3">Add to Round 3</button>
+              <button id="modalAddR4">Add to Round 4</button>
+            </div>
+          </div>
+
+          <div>
+            <div class="pill" style="margin-bottom:10px;">Raw data (debug)</div>
+            <div class="monoBox" id="modalRaw"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">
+      <div class="row">
+        <div class="msg" id="toastMsg">Saved</div>
+        <button class="ghost" id="toastClose">Dismiss</button>
+      </div>
+      <div class="sub" id="toastSub"></div>
+    </div>
+
+    <script>
+      // ============================================================
+      // Small utilities
+      // ============================================================
+      const $ = (id) => document.getElementById(id);
+
+      function safeText(x){ return (x === null || x === undefined) ? "" : String(x); }
+      function clamp(n,a,b){ return Math.max(a, Math.min(b,n)); }
+
+      function setError(msg){
         const box = $("errorBox");
-        if (!msg) { box.style.display = "none"; box.textContent = ""; return; }
-        box.style.display = "block";
+        if (!msg){ box.style.display="none"; box.textContent=""; return; }
+        box.style.display="block";
         box.textContent = msg;
       }
 
-      function safeText(x) { return (x === null || x === undefined) ? "" : String(x); }
+      function toast(msg, sub=""){
+        const t = $("toast");
+        $("toastMsg").textContent = msg;
+        $("toastSub").textContent = sub;
+        t.style.display = "block";
+        clearTimeout(toast._timer);
+        toast._timer = setTimeout(() => { t.style.display="none"; }, 4200);
+      }
+      $("toastClose").addEventListener("click", () => $("toast").style.display="none");
+
+      // ============================================================
+      // State (local autosave for convenience)
+      //   NOTE: "Submit picks" sends to server Postgres.
+      // ============================================================
+      const STORAGE_KEY = "schedule_portal_global_v1";
+      const MAX_PER_ROUND = 5;
+
+      window.state = {
+        activeTab: "browse",
+        studentId: "S001",
+        grade: 12,
+        preference: "balanced",
+        forceCap: 25,
+        picks: [[],[],[],[]],  // arrays of class_id strings
+        notes: "",
+        theme: "dark",
+      };
+
+      function loadState(){
+        try{
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return;
+          const saved = JSON.parse(raw);
+
+          if (saved && typeof saved === "object"){
+            Object.assign(window.state, saved);
+          }
+
+          // normalize
+          if (!Array.isArray(window.state.picks) || window.state.picks.length !== 4) window.state.picks = [[],[],[],[]];
+          for (let i=0; i<4; i++){
+            if (!Array.isArray(window.state.picks[i])) window.state.picks[i] = [];
+            window.state.picks[i] = window.state.picks[i].map(x => String(x));
+          }
+
+          window.state.grade = parseInt(window.state.grade, 10) || 12;
+          window.state.forceCap = parseInt(window.state.forceCap, 10) || 25;
+          window.state.studentId = safeText(window.state.studentId).trim() || "S001";
+          window.state.preference = window.state.preference || "balanced";
+          window.state.notes = safeText(window.state.notes);
+          window.state.theme = window.state.theme || "dark";
+          window.state.activeTab = window.state.activeTab || "browse";
+        } catch(e){
+          // ignore
+        }
+      }
+
+      function saveState(silent=true){
+        try{
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(window.state));
+          if (!silent) toast("Saved", "Autosaved in your browser (local).");
+        } catch(e){
+          // ignore
+        }
+      }
+
+      function setTheme(theme){
+        window.state.theme = theme;
+        document.documentElement.dataset.theme = theme === "light" ? "light" : "dark";
+        saveState(true);
+      }
+
+      function applyStateToUI(){
+        $("studentId").value = window.state.studentId;
+        $("grade").value = String(window.state.grade);
+        $("preference").value = window.state.preference;
+        $("forceCap").value = String(window.state.forceCap);
+        $("notes").value = window.state.notes || "";
+        setTheme(window.state.theme);
+      }
+
+      function pullUIToState(){
+        window.state.studentId = safeText($("studentId").value).trim() || "S001";
+        window.state.grade = parseInt($("grade").value,10) || 12;
+        window.state.preference = $("preference").value || "balanced";
+        window.state.forceCap = parseInt($("forceCap").value,10) || 25;
+        window.state.notes = safeText($("notes").value);
+        saveState(true);
+        refreshBadges();
+      }
+
+      // ============================================================
+      // Tabs / stepper
+      // ============================================================
+      const steps = [
+        { id:"browse",  title:"Browse",  sub:"Find courses", tabTitle:"Browse courses" },
+        { id:"picks",   title:"Picks",   sub:"Rank rounds",  tabTitle:"My ranked picks" },
+        { id:"review",  title:"Review",  sub:"Check issues", tabTitle:"Review & submit" },
+        { id:"results", title:"Results", sub:"Assignments",  tabTitle:"My results" },
+      ];
+
+      function buildStepper(){
+        const wrap = $("stepper");
+        wrap.innerHTML = "";
+        steps.forEach((s, idx) => {
+          const el = document.createElement("div");
+          el.className = "step";
+          el.dataset.step = s.id;
+          el.innerHTML = `
+            <div class="num">${idx+1}</div>
+            <div class="txt">
+              <b>${s.title}</b>
+              <span>${s.sub}</span>
+            </div>
+          `;
+          el.addEventListener("click", () => setActiveTab(s.id));
+          wrap.appendChild(el);
+        });
+      }
+
+      function setActiveTab(id){
+        window.state.activeTab = id;
+
+        for (const s of steps){
+          const tab = document.getElementById(`tab-${s.id}`);
+          if (tab) tab.classList.toggle("active", s.id === id);
+        }
+
+        $("tabTitle").textContent = (steps.find(x => x.id === id)?.tabTitle) || "Browse courses";
+
+        document.querySelectorAll(".step").forEach(el => {
+          el.classList.toggle("active", el.dataset.step === id);
+        });
+
+        if (id === "review") renderReview();
+        if (id === "results") renderResultsFromServerCache();
+
+        saveState(true);
+      }
+
+      // ============================================================
+      // Course data + rendering
+      // ============================================================
+      let classes = [];
+      const classesById = new Map();
 
       function courseCode(c){
         const subj = safeText(c.subject).trim();
-        const num = safeText(c.course_number).trim();
-        const sec = safeText(c.section).trim();
+        const num  = safeText(c.course_number).trim();
+        const sec  = safeText(c.section).trim();
         const code = [subj, num].filter(Boolean).join(" ");
         return (code + (sec ? `-${sec}` : "")).trim() || `CRN ${c.class_id}`;
       }
@@ -605,33 +1072,26 @@
       function seatsStatus(c){
         const cap = c.capacity;
         const enr = c.enrolled;
-        if (cap === null || cap === undefined || cap === "") return { label: "Seats unknown", kind: "warn" };
-        if (enr === null || enr === undefined || enr === "") return { label: `Cap ${cap}`, kind: "warn" };
+        if (cap === null || cap === undefined || cap === "") return { label: "Seats unknown", kind: "warn", open: null };
+        if (enr === null || enr === undefined || enr === "") return { label: `Cap ${cap}`, kind: "warn", open: null };
         const remaining = Number(cap) - Number(enr);
         if (Number.isFinite(remaining)) {
-          if (remaining > 0) return { label: `${remaining} seats open`, kind: "good" };
-          return { label: "Full", kind: "bad" };
+          if (remaining > 0) return { label: `${remaining} open`, kind: "good", open: remaining };
+          return { label: "Full", kind: "bad", open: 0 };
         }
-        return { label: "Seats unknown", kind: "warn" };
+        return { label: "Seats unknown", kind: "warn", open: null };
       }
 
-      // Meeting parsing for conflict detection
       function parseDays(daysStr){
         const s = safeText(daysStr).toUpperCase().replace(/\s+/g,"");
-        // supports M T W R F (and common "TR")
         const out = new Set();
-        for (const ch of s) {
-          if ("MTWRF".includes(ch)) out.add(ch);
-        }
+        for (const ch of s){ if ("MTWRF".includes(ch)) out.add(ch); }
         return out;
       }
-
       function parseHHMM(x){
         const s = safeText(x).trim();
         if (!s) return null;
-        // already "1530"
         if (/^\d{4}$/.test(s)) return parseInt(s,10);
-        // maybe "3:30 PM" etc.
         const m = s.match(/^(\d{1,2}):(\d{2})\s*([AP]M)$/i);
         if (!m) return null;
         let hh = parseInt(m[1],10);
@@ -641,42 +1101,269 @@
         else { if (hh !== 12) hh += 12; }
         return hh*100 + mm;
       }
-
       function timeRange(c){
         const start = parseHHMM(c.start_time);
         const end = parseHHMM(c.end_time);
         if (start === null || end === null) return null;
         return { start, end };
       }
-
       function hasConflict(a, b){
         const da = parseDays(a.meeting_days);
         const db = parseDays(b.meeting_days);
-        if (da.size === 0 || db.size === 0) return false; // TBA doesn't conflict here
+        if (da.size === 0 || db.size === 0) return false;
         const overlapDay = [...da].some(d => db.has(d));
         if (!overlapDay) return false;
         const ta = timeRange(a), tb = timeRange(b);
         if (!ta || !tb) return false;
         return (ta.start < tb.end) && (tb.start < ta.end);
       }
+      function fmtTimeHHMM(hhmm){
+        if (hhmm === null || hhmm === undefined) return "";
+        const s = String(hhmm).padStart(4,"0");
+        const hh = parseInt(s.slice(0,2),10);
+        const mm = parseInt(s.slice(2),10);
+        const ap = hh >= 12 ? "PM" : "AM";
+        const h12 = (hh % 12) === 0 ? 12 : (hh % 12);
+        return `${h12}:${String(mm).padStart(2,"0")} ${ap}`;
+      }
 
-      // =========================
-      // State
-      // =========================
-      let classes = [];
-      const picks = [[], [], [], []]; // 4 rounds, each list of class_id strings
-      const MAX_PER_ROUND = 5;
+      function preferenceScore(c, pref){
+        const days = safeText(c.meeting_days);
+        const tr = timeRange(c);
+        const start = tr ? tr.start : null;
 
-      // =========================
-      // UI Builders
-      // =========================
-      function buildPlanner(){
+        let score = 0;
+
+        if (pref === "no_mornings"){
+          if (start !== null && start < 1000) score += 50;
+          if (start !== null && start < 900) score += 80;
+        } else if (pref === "no_friday"){
+          if (days.toUpperCase().includes("F")) score += 80;
+        } else if (pref === "compact"){
+          if (start !== null && start < 930) score += 40;
+          if (start !== null && start > 1500) score += 25;
+        }
+
+        const s = seatsStatus(c);
+        if (s.open !== null) score += (s.open === 0 ? 25 : -Math.min(10, s.open));
+        return score;
+      }
+
+      function isPicked(cid){
+        return window.state.picks.some(r => r.includes(cid));
+      }
+
+      function addToRound(cid, roundIndex){
+        setError("");
+        roundIndex = clamp(roundIndex, 0, 3);
+
+        if (isPicked(cid)){
+          setError("You already added this course to your picks. Duplicates don’t help—remove it first if you want to move it.");
+          toast("Already picked", "Remove it from the other round first.");
+          return;
+        }
+        if (window.state.picks[roundIndex].length >= MAX_PER_ROUND){
+          setError(`Round ${roundIndex+1} is full (max ${MAX_PER_ROUND}). Remove one or add to another round.`);
+          return;
+        }
+        window.state.picks[roundIndex].push(cid);
+        saveState(true);
+        toast("Added", `Added to Round ${roundIndex+1}.`);
+        refreshAll();
+      }
+
+      function removeFromRound(cid, r){
+        window.state.picks[r] = window.state.picks[r].filter(x => x !== cid);
+        saveState(true);
+        refreshAll();
+      }
+
+      function movePick(r, idx, dir){
+        const arr = window.state.picks[r];
+        const j = idx + dir;
+        if (j < 0 || j >= arr.length) return;
+        [arr[idx], arr[j]] = [arr[j], arr[idx]];
+        saveState(true);
+        refreshAll();
+      }
+
+      function courseMatchesFilters(c){
+        const q = safeText($("searchInput").value).trim().toLowerCase();
+        const subj = $("subjectFilter").value;
+        const avail = $("availabilityFilter").value;
+
+        if (subj && safeText(c.subject) !== subj) return false;
+
+        if (avail === "open"){
+          const s = seatsStatus(c);
+          if (s.open === null) return false;
+          if (s.open <= 0) return false;
+        } else if (avail === "tba"){
+          const days = safeText(c.meeting_days).trim();
+          const start = safeText(c.start_time).trim();
+          const end = safeText(c.end_time).trim();
+          if (days || (start && end)) return false;
+        }
+
+        if (!q) return true;
+
+        const hay = [
+          safeText(c.class_id),
+          safeText(c.subject),
+          safeText(c.course_number),
+          safeText(c.section),
+          safeText(c.title),
+          safeText(c.instructor),
+          safeText(c.meeting_days),
+          safeText(c.time_range),
+        ].join(" ").toLowerCase();
+
+        return hay.includes(q);
+      }
+
+      function sortCourses(arr){
+        const mode = $("sortBy").value;
+        const q = safeText($("searchInput").value).trim().toLowerCase();
+
+        const relevance = (c) => {
+          if (!q) return 0;
+          const code = `${safeText(c.subject)} ${safeText(c.course_number)}-${safeText(c.section)} ${safeText(c.class_id)}`.toLowerCase();
+          const title = safeText(c.title).toLowerCase();
+          const instr = safeText(c.instructor).toLowerCase();
+          let score = 0;
+          if (code.includes(q)) score -= 80;
+          if (title.includes(q)) score -= 40;
+          if (instr.includes(q)) score -= 25;
+          return score;
+        };
+
+        const timeKey = (c) => {
+          const tr = timeRange(c);
+          return tr ? tr.start : 9999;
+        };
+
+        const seatsKey = (c) => {
+          const s = seatsStatus(c);
+          if (s.open === null) return -9999;
+          return s.open;
+        };
+
+        const subjKey = (c) => safeText(c.subject);
+
+        const copy = arr.slice();
+        copy.sort((a,b) => {
+          if (mode === "subject"){
+            const s = subjKey(a).localeCompare(subjKey(b));
+            if (s !== 0) return s;
+            return courseCode(a).localeCompare(courseCode(b));
+          }
+          if (mode === "seats"){
+            const sa = seatsKey(a), sb = seatsKey(b);
+            if (sa === -9999 && sb !== -9999) return 1;
+            if (sb === -9999 && sa !== -9999) return -1;
+            return (sb - sa) || courseCode(a).localeCompare(courseCode(b));
+          }
+          if (mode === "time"){
+            return (timeKey(a) - timeKey(b)) || courseCode(a).localeCompare(courseCode(b));
+          }
+          return (relevance(a) - relevance(b)) || courseCode(a).localeCompare(courseCode(b));
+        });
+        return copy;
+      }
+
+      function renderCourseList(){
+        const list = $("courseList");
+        list.innerHTML = "";
+
+        const filtered = sortCourses(classes.filter(courseMatchesFilters));
+
+        $("courseCountPill").textContent = `Courses: ${classes.length}`;
+        $("shownCountPill").textContent = `Shown: ${filtered.length}`;
+
+        const openCount = filtered.reduce((acc, c) => {
+          const s = seatsStatus(c);
+          return acc + (s.open !== null && s.open > 0 ? 1 : 0);
+        }, 0);
+        $("seatHintTag").textContent = `Open in list: ${openCount}`;
+
+        if (filtered.length === 0){
+          const empty = document.createElement("div");
+          empty.className = "hint";
+          empty.textContent = "No courses match your filters. Try clearing search, changing subject, or switching availability.";
+          list.appendChild(empty);
+          return;
+        }
+
+        const show = filtered.slice(0, 240);
+
+        for (const c of show){
+          const item = document.createElement("div");
+          item.className = "courseItem";
+
+          const seat = seatsStatus(c);
+          const picked = isPicked(c.class_id);
+          const pickTag = picked ? `<span class="tag good">In picks</span>` : "";
+
+          const timeText = `${safeText(c.meeting_days) || "TBA"} ${safeText(c.time_range) || ""}`.trim();
+          const instrText = safeText(c.instructor) || "TBA";
+          const creditText = safeText(c.credits) || "?";
+
+          item.innerHTML = `
+            <div class="courseTop">
+              <div class="courseTitle">
+                <div class="code">${courseCode(c)} • CRN ${c.class_id} ${pickTag}</div>
+                <div class="name" title="${safeText(c.title)}">${safeText(c.title)}</div>
+                <div class="miniMeta">
+                  <span class="tag ${seat.kind}">${seat.label}</span>
+                  <span class="chip"><b>When</b> ${timeText || "TBA"}</span>
+                  <span class="chip"><b>Credits</b> ${creditText}</span>
+                  <span class="chip"><b>Instructor</b> ${instrText}</span>
+                </div>
+              </div>
+
+              <div class="courseBtns">
+                <button class="ghost" data-action="details">Details</button>
+                <button class="primary" data-action="r1">Add R1</button>
+                <button data-action="r2">Add R2</button>
+                <button data-action="r3">Add R3</button>
+                <button data-action="r4">Add R4</button>
+              </div>
+            </div>
+          `;
+
+          item.querySelector('[data-action="details"]').addEventListener("click", () => openCourseModal(c.class_id));
+          item.querySelector('[data-action="r1"]').addEventListener("click", () => addToRound(c.class_id, 0));
+          item.querySelector('[data-action="r2"]').addEventListener("click", () => addToRound(c.class_id, 1));
+          item.querySelector('[data-action="r3"]').addEventListener("click", () => addToRound(c.class_id, 2));
+          item.querySelector('[data-action="r4"]').addEventListener("click", () => addToRound(c.class_id, 3));
+
+          item.addEventListener("click", (e) => {
+            const tag = e.target?.tagName?.toLowerCase();
+            if (tag === "button") return;
+            openCourseModal(c.class_id);
+          });
+
+          list.appendChild(item);
+        }
+
+        if (filtered.length > 240){
+          const note = document.createElement("div");
+          note.className = "hint";
+          note.textContent = `Showing first 240 of ${filtered.length}. Narrow your search to see more.`;
+          list.appendChild(note);
+        }
+      }
+
+      // ============================================================
+      // Planner rendering
+      // ============================================================
+      function renderPlanner(){
         const planner = $("planner");
         planner.innerHTML = "";
 
-        for (let r = 0; r < 4; r++){
-          const roundCard = document.createElement("div");
-          roundCard.className = "roundCard";
+        for (let r=0; r<4; r++){
+          const rc = document.createElement("div");
+          rc.className = "roundCard";
 
           const head = document.createElement("div");
           head.className = "roundHead";
@@ -684,29 +1371,27 @@
           const left = document.createElement("div");
           left.className = "left";
           const h3 = document.createElement("h3");
-          h3.textContent = `Round ${r+1} (top → bottom priority)`;
-          left.appendChild(h3);
-
+          h3.textContent = `Round ${r+1} (priority order)`;
           const fill = document.createElement("span");
           fill.className = "pill";
-          fill.id = `roundFill_${r}`;
-          fill.textContent = `${picks[r].length}/${MAX_PER_ROUND} picks`;
+          fill.textContent = `${window.state.picks[r].length}/${MAX_PER_ROUND} picks`;
+          left.appendChild(h3);
           left.appendChild(fill);
-
-          head.appendChild(left);
 
           const right = document.createElement("div");
           right.className = "row";
 
-          const clearBtn = document.createElement("button");
-          clearBtn.className = "ghost";
-          clearBtn.textContent = "Clear";
-          clearBtn.addEventListener("click", () => {
-            picks[r] = [];
+          const clear = document.createElement("button");
+          clear.className = "ghost";
+          clear.textContent = "Clear";
+          clear.addEventListener("click", () => {
+            window.state.picks[r] = [];
+            saveState(true);
             refreshAll();
           });
+          right.appendChild(clear);
 
-          right.appendChild(clearBtn);
+          head.appendChild(left);
           head.appendChild(right);
 
           const body = document.createElement("div");
@@ -715,16 +1400,16 @@
           const list = document.createElement("div");
           list.className = "pickList";
 
-          if (picks[r].length === 0){
+          if (window.state.picks[r].length === 0){
             const empty = document.createElement("div");
             empty.className = "emptyState";
-            empty.textContent = "No picks yet. Add courses from the left.";
+            empty.textContent = "No picks yet. Add courses from Browse.";
             list.appendChild(empty);
           } else {
-            picks[r].forEach((cid, idx) => {
+            window.state.picks[r].forEach((cid, idx) => {
               const c = classesById.get(cid);
-              const pickRow = document.createElement("div");
-              pickRow.className = "pick";
+              const row = document.createElement("div");
+              row.className = "pick";
 
               const left2 = document.createElement("div");
               left2.className = "left";
@@ -757,38 +1442,33 @@
               up.textContent = "↑";
               up.title = "Move up";
               up.disabled = idx === 0;
-              up.addEventListener("click", () => {
-                const arr = picks[r];
-                [arr[idx-1], arr[idx]] = [arr[idx], arr[idx-1]];
-                refreshAll();
-              });
+              up.addEventListener("click", () => movePick(r, idx, -1));
 
               const down = document.createElement("button");
               down.textContent = "↓";
               down.title = "Move down";
-              down.disabled = idx === picks[r].length - 1;
-              down.addEventListener("click", () => {
-                const arr = picks[r];
-                [arr[idx], arr[idx+1]] = [arr[idx+1], arr[idx]];
-                refreshAll();
-              });
+              down.disabled = idx === window.state.picks[r].length - 1;
+              down.addEventListener("click", () => movePick(r, idx, +1));
+
+              const det = document.createElement("button");
+              det.className = "ghost";
+              det.textContent = "Details";
+              det.addEventListener("click", () => openCourseModal(cid));
 
               const del = document.createElement("button");
               del.className = "danger";
               del.textContent = "Remove";
-              del.addEventListener("click", () => {
-                picks[r] = picks[r].filter(x => x !== cid);
-                refreshAll();
-              });
+              del.addEventListener("click", () => removeFromRound(cid, r));
 
               btns.appendChild(up);
               btns.appendChild(down);
+              btns.appendChild(det);
               btns.appendChild(del);
 
-              pickRow.appendChild(left2);
-              pickRow.appendChild(btns);
+              row.appendChild(left2);
+              row.appendChild(btns);
 
-              list.appendChild(pickRow);
+              list.appendChild(row);
             });
           }
 
@@ -796,169 +1476,20 @@
 
           const hint = document.createElement("div");
           hint.className = "hint";
-          hint.textContent = "Tip: Put your favorite class at #1. The lottery tries each choice in order.";
+          hint.textContent = "Put your favorite at #1. Add backups in later rounds.";
           body.appendChild(hint);
 
-          roundCard.appendChild(head);
-          roundCard.appendChild(body);
-
-          planner.appendChild(roundCard);
+          rc.appendChild(head);
+          rc.appendChild(body);
+          planner.appendChild(rc);
         }
       }
 
-      function addToRound(cid, r){
-        setError("");
-        r = clamp(r, 0, 3);
-
-        // prevent duplicates across rounds unless student insists
-        const already = picks.some(round => round.includes(cid));
-        if (already) {
-          setError("You already added this course to your picks (duplicates don’t help). Remove it first if you want to move it.");
-          return;
-        }
-        if (picks[r].length >= MAX_PER_ROUND) {
-          setError(`Round ${r+1} is full (max ${MAX_PER_ROUND} picks). Remove one or add to another round.`);
-          return;
-        }
-        picks[r].push(cid);
-        refreshAll();
-      }
-
-      function courseMatchesFilters(c){
-        const q = safeText($("searchInput").value).trim().toLowerCase();
-        const subj = $("subjectFilter").value;
-        const avail = $("availabilityFilter").value;
-
-        if (subj && safeText(c.subject) !== subj) return false;
-
-        if (avail === "open"){
-          const cap = c.capacity, enr = c.enrolled;
-          if (cap === null || cap === undefined || cap === "" || enr === null || enr === undefined || enr === "") return false;
-          if (Number(cap) - Number(enr) <= 0) return false;
-        } else if (avail === "tba"){
-          const days = safeText(c.meeting_days).trim();
-          const start = safeText(c.start_time).trim();
-          const end = safeText(c.end_time).trim();
-          if (days || (start && end)) return false;
-        }
-
-        if (!q) return true;
-
-        const hay = [
-          safeText(c.class_id),
-          safeText(c.subject),
-          safeText(c.course_number),
-          safeText(c.section),
-          safeText(c.title),
-          safeText(c.instructor),
-          safeText(c.meeting_days),
-          safeText(c.time_range),
-        ].join(" ").toLowerCase();
-
-        return hay.includes(q);
-      }
-
-      function renderCourseList(){
-        const list = $("courseList");
-        list.innerHTML = "";
-
-        const filtered = classes.filter(courseMatchesFilters);
-
-        $("courseCountPill").textContent = `${classes.length} courses`;
-        $("filteredCountPill").textContent = `${filtered.length} shown`;
-
-        if (filtered.length === 0){
-          const empty = document.createElement("div");
-          empty.className = "muted tiny";
-          empty.textContent = "No courses match your filters. Try clearing the search or switching Subject/Only show.";
-          list.appendChild(empty);
-          return;
-        }
-
-        for (const c of filtered.slice(0, 220)){ // guard for huge lists
-          const item = document.createElement("div");
-          item.className = "courseItem";
-
-          const top = document.createElement("div");
-          top.className = "courseTop";
-
-          const titleBox = document.createElement("div");
-          titleBox.className = "courseTitle";
-
-          const codeLine = document.createElement("div");
-          codeLine.className = "code";
-          codeLine.textContent = `${courseCode(c)} • CRN ${c.class_id}`;
-
-          const nameLine = document.createElement("div");
-          nameLine.className = "name";
-          nameLine.title = c.title || "";
-          nameLine.textContent = c.title || "";
-
-          titleBox.appendChild(codeLine);
-          titleBox.appendChild(nameLine);
-
-          const actions = document.createElement("div");
-          actions.className = "courseActions";
-
-          for (let r=0; r<4; r++){
-            const b = document.createElement("button");
-            b.textContent = `Add to R${r+1}`;
-            b.className = r===0 ? "primary" : "";
-            b.addEventListener("click", () => addToRound(c.class_id, r));
-            actions.appendChild(b);
-          }
-
-          top.appendChild(titleBox);
-          top.appendChild(actions);
-
-          const meta = document.createElement("div");
-          meta.className = "chips";
-
-          const seat = seatsStatus(c);
-          const seatChip = document.createElement("span");
-          seatChip.className = `tag ${seat.kind}`;
-          seatChip.textContent = seat.label;
-
-          const credits = document.createElement("span");
-          credits.className = "chip";
-          credits.innerHTML = `<b>Credits</b> ${safeText(c.credits) || "?"}`;
-
-          const when = document.createElement("span");
-          when.className = "chip";
-          const days = safeText(c.meeting_days) || "TBA";
-          const time = safeText(c.time_range) || ((c.start_time && c.end_time) ? `${c.start_time}-${c.end_time}` : "TBA");
-          when.innerHTML = `<b>When</b> ${days} ${time}`.trim();
-
-          const instr = document.createElement("span");
-          instr.className = "chip";
-          instr.innerHTML = `<b>Instructor</b> ${safeText(c.instructor) || "TBA"}`;
-
-          meta.appendChild(seatChip);
-          meta.appendChild(credits);
-          meta.appendChild(when);
-          meta.appendChild(instr);
-
-          item.appendChild(top);
-          item.appendChild(meta);
-
-          list.appendChild(item);
-        }
-
-        if (filtered.length > 220){
-          const note = document.createElement("div");
-          note.className = "muted tiny";
-          note.textContent = `Showing first 220 of ${filtered.length}. Narrow your search to see more.`;
-          list.appendChild(note);
-        }
-      }
-
-      // =========================
-      // Derived stats
-      // =========================
-      const classesById = new Map();
-
+      // ============================================================
+      // Stats
+      // ============================================================
       function computeStats(){
-        const all = picks.flat();
+        const all = window.state.picks.flat();
         const unique = new Set(all);
         const dupes = all.length - unique.size;
 
@@ -969,7 +1500,6 @@
           if (Number.isFinite(cr)) totalCredits += cr;
         }
 
-        // Conflicts among all unique picks
         const pickedCourses = [...unique].map(cid => classesById.get(cid)).filter(Boolean);
         let conflicts = 0;
         for (let i=0; i<pickedCourses.length; i++){
@@ -978,233 +1508,630 @@
           }
         }
 
-        return { totalCredits, uniqueCount: unique.size, dupes, conflicts };
+        let openSeatPicks = 0;
+        for (const cid of unique){
+          const c = classesById.get(cid);
+          if (!c) continue;
+          const s = seatsStatus(c);
+          if (s.open !== null && s.open > 0) openSeatPicks++;
+        }
+
+        return { totalCredits, uniqueCount: unique.size, dupes, conflicts, openSeatPicks };
       }
 
       function refreshBadges(){
-        const fills = picks.map(r => r.length);
+        const fills = window.state.picks.map(r => r.length);
         $("roundFillPill").textContent = `Round fill: ${fills[0]}/${fills[1]}/${fills[2]}/${fills[3]}`;
-        $("dupePill").textContent = `Duplicates: ${computeStats().dupes}`;
 
-        for (let r=0; r<4; r++){
-          const el = document.getElementById(`roundFill_${r}`);
-          if (el) el.textContent = `${picks[r].length}/${MAX_PER_ROUND} picks`;
-        }
+        const { totalCredits, uniqueCount, dupes, conflicts } = computeStats();
 
-        const { totalCredits, uniqueCount, conflicts } = computeStats();
-        $("creditsPill").textContent = `Credits in picks: ${totalCredits}`;
         $("uniquePill").textContent = `Unique picks: ${uniqueCount}`;
-        $("conflictTag").textContent = `Conflicts: ${conflicts}`;
+        $("creditsPill").textContent = `Credits (unique picks): ${totalCredits}`;
+        $("conflictPill").textContent = `Conflicts: ${conflicts}`;
+        $("dupePill").textContent = `Duplicates: ${dupes}`;
 
-        // readiness
-        const anyPick = uniqueCount > 0;
-        const ok = $("okPill");
-        if (!anyPick){
-          ok.textContent = "Ready: No (add at least 1 pick)";
-          ok.className = "pill bad";
+        $("conflictTag").textContent = `Conflicts in picks: ${conflicts}`;
+        $("conflictTag").className = "tag " + (conflicts === 0 ? "good" : (conflicts <= 2 ? "warn" : "bad"));
+
+        const readyPill = $("readyPill");
+        if (uniqueCount === 0){
+          readyPill.textContent = "Ready: No (add at least 1 pick)";
+          readyPill.className = "pill bad";
         } else if (conflicts > 0){
-          ok.textContent = "Ready: Yes (but you have time conflicts)";
-          ok.className = "pill warn";
+          readyPill.textContent = "Ready: Yes (conflicts exist)";
+          readyPill.className = "pill warn";
         } else {
-          ok.textContent = "Ready: Yes";
-          ok.className = "pill good";
+          readyPill.textContent = "Ready: Yes";
+          readyPill.className = "pill good";
         }
-
-        // conflict tag color
-        const ct = $("conflictTag");
-        ct.className = "tag " + (conflicts === 0 ? "good" : (conflicts <= 2 ? "warn" : "bad"));
       }
 
-      function refreshAll(){
-        buildPlanner();
-        renderCourseList();
-        refreshBadges();
-      }
+      // ============================================================
+      // Review tab
+      // ============================================================
+      function renderReview(){
+        const stats = computeStats();
+        $("reviewSummaryPill").textContent = `Unique: ${stats.uniqueCount} • Credits: ${stats.totalCredits} • Conflicts: ${stats.conflicts}`;
+        $("reviewDupesTag").textContent = `Duplicates: ${stats.dupes}`;
+        $("reviewDupesTag").className = "tag " + (stats.dupes === 0 ? "good" : "warn");
+        $("reviewConfTag").textContent = `Conflicts: ${stats.conflicts}`;
+        $("reviewConfTag").className = "tag " + (stats.conflicts === 0 ? "good" : (stats.conflicts <= 2 ? "warn" : "bad"));
+        $("reviewOpenTag").textContent = `Open-seat picks: ${stats.openSeatPicks}`;
+        $("reviewOpenTag").className = "tag " + (stats.openSeatPicks > 0 ? "good" : "warn");
 
-      // =========================
-      // API Calls
-      // =========================
-      async function loadClasses(){
-        setError("");
-        $("serverStatus").textContent = "Loading courses...";
-        const res = await fetch("/api/classes");
-        const text = await res.text();
-        if (!res.ok) throw new Error(text);
-        classes = JSON.parse(text);
-
-        classesById.clear();
-        for (const c of classes) classesById.set(c.class_id, c);
-
-        // Build subject dropdown
-        const subjects = Array.from(new Set(classes.map(c => safeText(c.subject)).filter(Boolean))).sort();
-        const sel = $("subjectFilter");
-        sel.innerHTML = `<option value="">All</option>` + subjects.map(s => `<option value="${s}">${s}</option>`).join("");
-
-        $("serverStatus").textContent = `Loaded ${classes.length} courses`;
-        refreshAll();
-      }
-
-      function buildStudentPayload(){
-        const student_id = safeText($("studentId").value).trim() || "S001";
-        const grade = parseInt($("grade").value, 10) || 12;
-
-        // IMPORTANT: backend expects choices as List[List[str]]
-        // Our picks are exactly that: 4 rounds.
-        const choices = picks.map(r => r.slice(0, MAX_PER_ROUND));
-
-        // If user wants "preference", we can reorder within each round (optional)
-        // We keep it simple: no auto-reordering unless you want it.
-        return { student_id, grade, choices };
-      }
-
-      async function submitPicks(){
-        setError("");
-        $("serverStatus").textContent = "Submitting picks...";
-
-        const payload = buildStudentPayload();
-        const force_capacity_raw = safeText($("forceCap").value).trim();
-        const force_capacity = force_capacity_raw ? parseInt(force_capacity_raw, 10) : 25;
-
-        if (!payload.choices.flat().length){
-          setError("Add at least one course before submitting.");
-          $("serverStatus").textContent = "Not submitted yet";
-          return;
-        }
-
-        const res = await fetch("/api/run_lottery", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ students: [payload], force_capacity })
-        });
-
-        const text = await res.text();
-        if (!res.ok) throw new Error(text);
-
-        const data = JSON.parse(text);
-        $("serverStatus").textContent = "Submitted ✅";
-        renderResults(data, payload.student_id);
-      }
-
-      // =========================
-      // Results rendering
-      // =========================
-      function renderResults(data, studentId){
-        const results = $("results");
-        results.innerHTML = "";
-
-        const student = (data.students || []).find(s => s.student_id === studentId) || (data.students || [])[0];
-        if (!student){
-          results.textContent = "No student results returned.";
-          return;
-        }
-
-        const assigned = student.assigned_classes || [];
-        const lottery = student.lottery_number ?? "";
-
-        const card = document.createElement("div");
-        card.className = "courseItem";
-
-        const top = document.createElement("div");
-        top.className = "courseTop";
-
-        const left = document.createElement("div");
-        left.className = "courseTitle";
-
-        const line1 = document.createElement("div");
-        line1.className = "code";
-        line1.textContent = `Student ${student.student_id} • Grade ${student.grade} • Lottery # ${lottery}`;
-
-        const line2 = document.createElement("div");
-        line2.className = "name";
-        line2.textContent = "Assigned classes (one per round):";
-
-        left.appendChild(line1);
-        left.appendChild(line2);
-
-        top.appendChild(left);
-        card.appendChild(top);
-
-        const tbl = document.createElement("table");
-        tbl.innerHTML = `
-          <thead>
-            <tr>
-              <th style="width:90px;">Round</th>
-              <th>Assigned</th>
-              <th style="width:170px;">When</th>
-              <th style="width:140px;">Instructor</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        `;
-        const tbody = tbl.querySelector("tbody");
-
-        for (let i=0; i<4; i++){
-          const cid = assigned[i];
-          const c = cid ? classesById.get(cid) : null;
-
+        const tbody = $("reviewTable").querySelector("tbody");
+        tbody.innerHTML = "";
+        for (let r=0; r<4; r++){
           const tr = document.createElement("tr");
+          const picks = window.state.picks[r].map((cid, i) => {
+            const c = classesById.get(cid);
+            const label = c ? `${i+1}. ${courseCode(c)} — ${safeText(c.title)}` : `${i+1}. ${cid}`;
+            return label;
+          }).join("\n") || "(none)";
           tr.innerHTML = `
-            <td>Round ${i+1}</td>
-            <td>${c ? `${courseCode(c)} • CRN ${c.class_id} — ${safeText(c.title)}` : "(none)"}</td>
-            <td>${c ? `${safeText(c.meeting_days) || "TBA"} ${safeText(c.time_range) || ""}` : ""}</td>
-            <td>${c ? (safeText(c.instructor) || "TBA") : ""}</td>
+            <td>Round ${r+1}</td>
+            <td style="white-space: pre-wrap;">${picks}</td>
           `;
           tbody.appendChild(tr);
         }
 
-        results.appendChild(card);
-        results.appendChild(tbl);
-
-        // Show conflicts warning if any in assigned
-        const assignedCourses = assigned.map(cid => classesById.get(cid)).filter(Boolean);
-        let conf = 0;
-        for (let i=0; i<assignedCourses.length; i++){
-          for (let j=i+1; j<assignedCourses.length; j++){
-            if (hasConflict(assignedCourses[i], assignedCourses[j])) conf++;
-          }
-        }
-        const note = document.createElement("div");
-        note.className = "hint";
-        if (conf > 0){
-          note.innerHTML = `<span class="tag bad">Time conflicts in assigned schedule: ${conf}</span> 
-                            Consider adjusting picks to avoid overlaps, then submit again.`;
-        } else {
-          note.innerHTML = `<span class="tag good">No time conflicts detected in assigned schedule</span>`;
-        }
-        results.appendChild(note);
+        renderWeekView();
       }
 
-      // =========================
-      // Events
-      // =========================
-      $("loadBtn").addEventListener("click", () => {
-        loadClasses().catch(err => { setError(String(err)); $("serverStatus").textContent = "Load failed"; });
+      function renderWeekView(){
+        const wrap = $("weekView");
+        wrap.innerHTML = "";
+
+        const days = [
+          { key:"M", name:"Monday" },
+          { key:"T", name:"Tuesday" },
+          { key:"W", name:"Wednesday" },
+          { key:"R", name:"Thursday" },
+          { key:"F", name:"Friday" },
+        ];
+
+        const unique = new Set(window.state.picks.flat());
+        const courses = [...unique].map(cid => classesById.get(cid)).filter(Boolean);
+
+        const byDay = { M:[], T:[], W:[], R:[], F:[] };
+        for (const c of courses){
+          const ds = parseDays(c.meeting_days);
+          if (ds.size === 0) continue;
+          const tr = timeRange(c);
+          for (const d of ds){
+            if (byDay[d]) byDay[d].push({ c, start: tr ? tr.start : 9999 });
+          }
+        }
+        for (const d of Object.keys(byDay)){
+          byDay[d].sort((a,b) => (a.start - b.start) || courseCode(a.c).localeCompare(courseCode(b.c)));
+        }
+
+        for (const d of days){
+          const col = document.createElement("div");
+          col.className = "dayCol";
+          col.innerHTML = `<div class="head">${d.name}</div><div class="body"></div>`;
+          const body = col.querySelector(".body");
+
+          if (byDay[d.key].length === 0){
+            const none = document.createElement("div");
+            none.className = "hint";
+            none.textContent = "No picked classes on this day.";
+            body.appendChild(none);
+          } else {
+            for (const item of byDay[d.key]){
+              const c = item.c;
+              const tr = timeRange(c);
+              const time = tr ? `${fmtTimeHHMM(tr.start)} – ${fmtTimeHHMM(tr.end)}` : (safeText(c.time_range) || "TBA");
+              const slot = document.createElement("div");
+              slot.className = "slot";
+              slot.innerHTML = `
+                <b>${courseCode(c)}</b>
+                <span>${time}</span>
+                <span>${safeText(c.title) || ""}</span>
+              `;
+              slot.addEventListener("click", () => openCourseModal(c.class_id));
+              body.appendChild(slot);
+            }
+          }
+
+          wrap.appendChild(col);
+        }
+      }
+
+      // ============================================================
+      // Modal
+      // ============================================================
+      let modalCourseId = null;
+
+      function openCourseModal(cid){
+        const c = classesById.get(cid);
+        if (!c) return;
+
+        modalCourseId = cid;
+
+        $("modalTitle").textContent = `${courseCode(c)} • CRN ${c.class_id}`;
+        const seat = seatsStatus(c);
+        $("modalSeatTag").textContent = `Seats: ${seat.label}`;
+        $("modalSeatTag").className = `tag ${seat.kind}`;
+
+        const when = `${safeText(c.meeting_days) || "TBA"} ${safeText(c.time_range) || ""}`.trim();
+        $("modalTimeTag").textContent = `When: ${when || "TBA"}`;
+        $("modalTimeTag").className = "tag";
+
+        $("modalInstrTag").textContent = `Instructor: ${safeText(c.instructor) || "TBA"}`;
+        $("modalInstrTag").className = "tag";
+
+        $("modalDesc").innerHTML = `
+          <b>${safeText(c.title) || ""}</b><br/>
+          ${when ? `Meets: ${when}.` : "Meeting time: TBA."}
+          ${safeText(c.building) || safeText(c.room) ? `<br/>Location: ${safeText(c.building)} ${safeText(c.room)}` : ""}
+        `;
+
+        $("modalRaw").textContent = JSON.stringify(c, null, 2);
+
+        $("modalAddR1").onclick = () => addToRound(cid, 0);
+        $("modalAddR2").onclick = () => addToRound(cid, 1);
+        $("modalAddR3").onclick = () => addToRound(cid, 2);
+        $("modalAddR4").onclick = () => addToRound(cid, 3);
+
+        $("modalBackdrop").style.display = "flex";
+      }
+
+      function closeModal(){
+        $("modalBackdrop").style.display = "none";
+        modalCourseId = null;
+      }
+      $("modalCloseBtn").addEventListener("click", closeModal);
+      $("modalBackdrop").addEventListener("click", (e) => {
+        if (e.target === $("modalBackdrop")) closeModal();
       });
 
-      $("resetBtn").addEventListener("click", () => {
-        for (let r=0; r<4; r++) picks[r] = [];
+      // ============================================================
+      // API calls
+      // ============================================================
+      async function loadClasses(){
         setError("");
+        $("statusPill").textContent = "Status: loading courses…";
+        try{
+          const res = await fetch("/api/classes");
+          const text = await res.text();
+          if (!res.ok) throw new Error(text);
+
+          classes = JSON.parse(text);
+          classesById.clear();
+          for (const c of classes) classesById.set(String(c.class_id), c);
+
+          const subjects = Array.from(new Set(classes.map(c => safeText(c.subject)).filter(Boolean))).sort();
+          $("subjectFilter").innerHTML =
+            `<option value="">All</option>` +
+            subjects.map(s => `<option value="${s}">${s}</option>`).join("");
+
+          $("serverPill").textContent = "Server: connected";
+          $("serverPill").className = "pill good";
+          $("statusPill").textContent = `Status: loaded ${classes.length} courses`;
+          refreshAll();
+        } catch(e){
+          $("serverPill").textContent = "Server: not ready";
+          $("serverPill").className = "pill bad";
+          $("statusPill").textContent = "Status: failed to load courses";
+          setError(String(e));
+        }
+      }
+
+      function normalizeChoices(choices){
+        const out = [];
+        for (let r=0; r<4; r++){
+          const roundList = Array.isArray(choices[r]) ? choices[r] : [];
+          out.push(roundList.map(x => String(x).trim()).filter(Boolean).slice(0, MAX_PER_ROUND));
+        }
+        return out;
+      }
+
+      function buildSubmitPayload(){
+        const student_id = safeText($("studentId").value).trim();
+        const grade = parseInt($("grade").value, 10) || 12;
+        const choices = normalizeChoices(window.state.picks);
+        return { student: { student_id, grade, choices } };
+      }
+
+      async function submitPicksToServer(){
+        setError("");
+        const payload = buildSubmitPayload();
+
+        if (!payload.student.student_id){
+          setError("Enter a Student ID before submitting.");
+          toast("Missing Student ID", "Type your Student ID, then click Submit picks.");
+          return;
+        }
+        if (payload.student.choices.flat().length === 0){
+          setError("Add at least one pick before submitting.");
+          toast("No picks yet", "Add a course to any round first.");
+          return;
+        }
+
+        $("statusPill").textContent = "Status: submitting picks…";
+        $("serverPill").textContent = "Server: working…";
+        $("serverPill").className = "pill warn";
+
+        try{
+          const res = await fetch("/api/submit_picks", {
+            method:"POST",
+            headers:{ "Content-Type":"application/json" },
+            body: JSON.stringify(payload)
+          });
+          const data = await res.json().catch(() => ({}));
+
+          if (!res.ok || !data.ok){
+            throw new Error(data.error || data.detail || res.statusText || "Submit failed");
+          }
+
+          $("statusPill").textContent = "Status: picks saved ✅";
+          $("serverPill").textContent = "Server: connected";
+          $("serverPill").className = "pill good";
+          toast("Picks submitted", "Saved to server database. Now wait for the global lottery (admin).");
+
+        } catch(e){
+          $("statusPill").textContent = "Status: submit failed";
+          $("serverPill").textContent = "Server: error";
+          $("serverPill").className = "pill bad";
+          setError(String(e));
+        }
+      }
+
+      // Cache last results for rendering without refetch
+      let lastResults = null;
+
+      async function fetchResultsForStudent(){
+        setError("");
+        const sid = safeText($("studentId").value).trim();
+        if (!sid){
+          setError("Enter a Student ID before checking results.");
+          return;
+        }
+
+        $("statusPill").textContent = "Status: checking results…";
+
+        try{
+          const res = await fetch(`/api/results/${encodeURIComponent(sid)}`);
+          const data = await res.json().catch(() => ({}));
+
+          if (!res.ok || !data.ok){
+            throw new Error(data.error || data.detail || res.statusText || "Results fetch failed");
+          }
+
+          lastResults = data;
+          $("statusPill").textContent = "Status: results loaded ✅";
+          toast("Results loaded", `Run: ${data.run_id ?? "none yet"}`);
+
+          setActiveTab("results");
+          renderResultsFromServerCache();
+
+        } catch(e){
+          $("statusPill").textContent = "Status: results failed";
+          setError(String(e));
+        }
+      }
+
+      function renderResultsFromServerCache(){
+        const area = $("resultsArea");
+        const pre = $("resultsBox");
+
+        if (!lastResults){
+          area.innerHTML = `<div class="hint" style="color: var(--muted);">No results loaded. Click <b>Check results</b>.</div>`;
+          pre.style.display = "none";
+          return;
+        }
+
+        const sid = lastResults.student_id;
+        const runId = lastResults.run_id;
+        const assigned = Array.isArray(lastResults.assigned_classes) ? lastResults.assigned_classes : [null,null,null,null];
+        const padded = (assigned.concat([null,null,null,null])).slice(0,4);
+
+        const assignedCourses = padded.map(cid => cid ? classesById.get(String(cid)) : null);
+
+        // conflict check
+        let conflicts = 0;
+        const nonNull = assignedCourses.filter(Boolean);
+        for (let i=0; i<nonNull.length; i++){
+          for (let j=i+1; j<nonNull.length; j++){
+            if (hasConflict(nonNull[i], nonNull[j])) conflicts++;
+          }
+        }
+
+        const confTag = conflicts === 0
+          ? `<span class="tag good">No time conflicts detected</span>`
+          : `<span class="tag bad">Time conflicts: ${conflicts}</span>`;
+
+        const header = `
+          <div class="courseItem">
+            <div class="courseTop">
+              <div class="courseTitle">
+                <div class="code">Student ${sid} • Latest Run: ${runId ?? "none yet"}</div>
+                <div class="name">Assigned classes (one per round):</div>
+                <div class="miniMeta">
+                  ${confTag}
+                  <span class="tag">If you see “none yet”, the admin hasn’t run the global lottery.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+
+        const rows = padded.map((cid, i) => {
+          const c = cid ? classesById.get(String(cid)) : null;
+          const when = c ? `${safeText(c.meeting_days) || "TBA"} ${safeText(c.time_range) || ""}`.trim() : "";
+          const instr = c ? (safeText(c.instructor) || "TBA") : "";
+          const title = c ? safeText(c.title) : "";
+          return `
+            <tr>
+              <td>Round ${i+1}</td>
+              <td>${c ? `${courseCode(c)} • CRN ${c.class_id}` : "(none)"}</td>
+              <td>${title || ""}</td>
+              <td>${when || ""}</td>
+              <td>${instr || ""}</td>
+            </tr>
+          `;
+        }).join("");
+
+        const table = `
+          <table>
+            <thead>
+              <tr>
+                <th style="width:90px;">Round</th>
+                <th style="width:220px;">Course</th>
+                <th>Title</th>
+                <th style="width:220px;">When</th>
+                <th style="width:170px;">Instructor</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        `;
+
+        area.innerHTML = header + table;
+
+        pre.style.display = "block";
+        pre.textContent = JSON.stringify(lastResults, null, 2);
+      }
+
+      // Admin-only: run global lottery
+      async function runGlobalLottery(){
+        setError("");
+
+        const token = prompt("Admin token (X-Admin-Token)?");
+        if (!token) return;
+
+        const force_capacity = parseInt($("forceCap").value, 10) || 25;
+
+        $("statusPill").textContent = "Status: running global lottery…";
+        $("serverPill").textContent = "Server: running…";
+        $("serverPill").className = "pill warn";
+
+        try{
+          const res = await fetch("/api/admin/run_global_lottery", {
+            method:"POST",
+            headers:{
+              "Content-Type":"application/json",
+              "X-Admin-Token": token
+            },
+            body: JSON.stringify({ force_capacity })
+          });
+
+          const data = await res.json().catch(() => ({}));
+
+          if (!res.ok || !data.ok){
+            throw new Error(data.error || data.detail || res.statusText || "Global run failed");
+          }
+
+          $("statusPill").textContent = "Status: global lottery completed ✅";
+          $("serverPill").textContent = "Server: connected";
+          $("serverPill").className = "pill good";
+          toast("Global lottery ran", `Run ID: ${data.run_id}. Students can now check results.`);
+
+        } catch(e){
+          $("statusPill").textContent = "Status: global lottery failed";
+          $("serverPill").textContent = "Server: error";
+          $("serverPill").className = "pill bad";
+          setError(String(e));
+        }
+      }
+
+      // ============================================================
+      // Import / Export
+      // ============================================================
+      function exportJSON(){
+        const blob = new Blob([JSON.stringify({
+          studentId: window.state.studentId,
+          grade: window.state.grade,
+          preference: window.state.preference,
+          forceCap: window.state.forceCap,
+          picks: window.state.picks,
+          notes: window.state.notes
+        }, null, 2)], { type:"application/json" });
+
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `schedule_picks_${(window.state.studentId || "student").replaceAll(" ","_")}.json`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        toast("Exported", "Downloaded your picks as JSON.");
+      }
+
+      function importJSON(){
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "application/json";
+        input.onchange = async () => {
+          const file = input.files?.[0];
+          if (!file) return;
+          const text = await file.text();
+          try{
+            const obj = JSON.parse(text);
+            if (obj.picks && Array.isArray(obj.picks) && obj.picks.length === 4){
+              window.state.picks = obj.picks.map(r => Array.isArray(r) ? r.map(x => String(x)) : []).slice(0,4);
+            }
+            if (obj.studentId) window.state.studentId = String(obj.studentId);
+            if (obj.grade) window.state.grade = parseInt(obj.grade,10) || window.state.grade;
+            if (obj.preference) window.state.preference = String(obj.preference);
+            if (obj.forceCap) window.state.forceCap = parseInt(obj.forceCap,10) || window.state.forceCap;
+            if (obj.notes !== undefined) window.state.notes = String(obj.notes);
+
+            applyStateToUI();
+            saveState(true);
+            toast("Imported", "Loaded picks from JSON.");
+            refreshAll();
+          } catch(e){
+            setError("Import failed: invalid JSON file.");
+          }
+        };
+        input.click();
+      }
+
+      // ============================================================
+      // Suggest order
+      // ============================================================
+      function suggestOrder(){
+        const pref = window.state.preference;
+        if (!pref || pref === "balanced"){
+          toast("No changes", "Choose a preference in the sidebar to use Suggest order.");
+          return;
+        }
+        for (let r=0; r<4; r++){
+          const arr = window.state.picks[r].slice();
+          arr.sort((a,b) => {
+            const ca = classesById.get(a), cb = classesById.get(b);
+            const sa = ca ? preferenceScore(ca, pref) : 0;
+            const sb = cb ? preferenceScore(cb, pref) : 0;
+            return (sa - sb);
+          });
+          window.state.picks[r] = arr;
+        }
+        saveState(true);
+        toast("Suggested order applied", `Preference: ${pref.replaceAll("_"," ")}`);
         refreshAll();
-      });
+      }
 
-      $("runBtn").addEventListener("click", () => {
-        submitPicks().catch(err => { setError(String(err)); $("serverStatus").textContent = "Submit failed"; });
-      });
+      // ============================================================
+      // Help
+      // ============================================================
+      function showHelp(){
+        toast(
+          "Help",
+          `Student flow:
+1) Browse courses and add picks to Rounds 1–4.
+2) Reorder within each round if needed.
+3) Click “Submit picks” (saves to server).
+4) After the admin runs the global lottery, click “Check results”.
 
-      $("searchInput").addEventListener("input", () => renderCourseList());
-      $("subjectFilter").addEventListener("change", () => renderCourseList());
-      $("availabilityFilter").addEventListener("change", () => renderCourseList());
+Admin flow:
+- Click “Run Global Lottery” and enter the admin token.
 
-      // preference is currently UI-only; could auto-sort in the future
-      $("preference").addEventListener("change", () => {
-        // no-op for now, but we keep it for later enhancements
-      });
+Shortcuts:
+- / focuses search
+- Esc closes dialogs`
+        );
+      }
 
+      // ============================================================
+      // Full refresh
+      // ============================================================
+      function refreshAll(){
+        refreshBadges();
+
+        if (window.state.activeTab === "browse") renderCourseList();
+        if (window.state.activeTab === "picks") renderPlanner();
+        if (window.state.activeTab === "review") renderReview();
+        if (window.state.activeTab === "results") renderResultsFromServerCache();
+
+        // keep planner updated for review navigation
+        if (window.state.activeTab !== "picks") renderPlanner();
+      }
+
+      // ============================================================
+      // Event wiring
+      // ============================================================
+      function wireEvents(){
+        $("reloadBtn").addEventListener("click", loadClasses);
+
+        $("clearBtn").addEventListener("click", () => {
+          if (!confirm("Clear all picks?")) return;
+          window.state.picks = [[],[],[],[]];
+          saveState(true);
+          toast("Cleared", "All picks cleared (local).");
+          refreshAll();
+        });
+
+        $("submitBtn").addEventListener("click", submitPicksToServer);
+        $("submitBtn2").addEventListener("click", submitPicksToServer);
+
+        $("refreshResultsBtn").addEventListener("click", fetchResultsForStudent);
+        $("refreshResultsBtn2").addEventListener("click", fetchResultsForStudent);
+        $("refreshResultsBtn3").addEventListener("click", fetchResultsForStudent);
+
+        $("adminRunBtn").addEventListener("click", runGlobalLottery);
+
+        $("adminHelpBtn").addEventListener("click", () => {
+          toast("Admin tools", "This button runs ONE global lottery for everyone who already submitted picks.\nStudents then click “Check results”.");
+        });
+
+        $("reviewBtn").addEventListener("click", () => setActiveTab("review"));
+        $("toBrowseBtn").addEventListener("click", () => setActiveTab("browse"));
+        $("toPicksBtn").addEventListener("click", () => setActiveTab("picks"));
+        $("backToReviewBtn").addEventListener("click", () => setActiveTab("review"));
+
+        $("suggestBtn").addEventListener("click", suggestOrder);
+
+        $("exportBtn").addEventListener("click", exportJSON);
+        $("importBtn").addEventListener("click", importJSON);
+
+        $("helpBtn").addEventListener("click", showHelp);
+
+        $("themeBtn").addEventListener("click", () => {
+          const next = (window.state.theme === "light") ? "dark" : "light";
+          setTheme(next);
+          toast("Theme", `Switched to ${next}.`);
+        });
+
+        $("searchInput").addEventListener("input", renderCourseList);
+        $("subjectFilter").addEventListener("change", renderCourseList);
+        $("availabilityFilter").addEventListener("change", renderCourseList);
+        $("sortBy").addEventListener("change", renderCourseList);
+
+        ["studentId","grade","preference","forceCap","notes"].forEach(id => {
+          $(id).addEventListener("change", pullUIToState);
+          $(id).addEventListener("input", () => saveState(true));
+        });
+
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "/" && !e.metaKey && !e.ctrlKey && !e.altKey){
+            const tag = document.activeElement?.tagName?.toLowerCase();
+            if (tag !== "input" && tag !== "textarea" && tag !== "select"){
+              e.preventDefault();
+              $("searchInput").focus();
+            }
+          }
+          if (e.key === "Escape"){
+            closeModal();
+            $("toast").style.display = "none";
+          }
+        });
+      }
+
+      // ============================================================
       // Boot
-      loadClasses().catch(err => {
-        setError(String(err));
-        $("serverStatus").textContent = "Server not ready";
-      });
+      // ============================================================
+      buildStepper();
+      loadState();
+      applyStateToUI();
+      wireEvents();
+      setActiveTab(window.state.activeTab || "browse");
+
+      $("statusPill").textContent = "Status: loading…";
+      $("serverPill").textContent = "Server: checking…";
+      $("serverPill").className = "pill warn";
+
+      loadClasses();
+      refreshAll();
     </script>
   </body>
 </html>
