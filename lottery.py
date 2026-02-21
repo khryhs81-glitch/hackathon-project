@@ -1,132 +1,218 @@
-# -------------------------
-# Classes
-# -------------------------
-class Class:
-    def __init__(self, class_id, name, time, location, capacity):
-        self.class_id = class_id
-        self.name = name
-        self.time = time
-        self.location = location
-        self.capacity = capacity
-        self.enrolled_students = []
-
-class Student:
-    def __init__(self, student_id, choices, grade):
-        self.student_id = student_id
-        self.choices = choices
-        self.assigned_classes = [None] * len(choices)
-        self.grade = grade
-        self.lottery_number = None
+from __future__ import annotations
 
 import csv
 import random
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Optional, List, Dict, Any
 
-# -------------------------
-# Configuration
-# -------------------------
-NUM_STUDENTS = 200
-GRADES = [9, 10, 11, 12]
 
-# -------------------------
-# Create Class Objects
-# -------------------------
-CLASSES = [
-    Class("C101", "Algebra I", "Mon 9-10", "Room A", 40),
-    Class("C102", "Biology", "Mon 10-11", "Room B", 35),
-    Class("C103", "World History", "Tue 9-10", "Room C", 40),
-    Class("C104", "Art I", "Wed 9-10", "Room D", 25),
-    Class("C105", "Choir", "Thu 10-11", "Room E", 25),
-    Class("C106", "Physical Education", "Fri 9-10", "Gym", 50),
-    Class("C107", "Chemistry", "Mon 11-12", "Room F", 35),
-    Class("C108", "English", "Tue 10-11", "Room G", 40),
-    Class("C109", "Computer Science", "Wed 10-11", "Room H", 30),
-    Class("C110", "Spanish I", "Thu 9-10", "Room I", 30),
-]
+# ============================================================
+# PATHS
+# ============================================================
+BASE_DIR = Path(__file__).resolve().parent
 
-CLASS_IDS = [c.class_id for c in CLASSES]
-class_dict = {c.class_id: c for c in CLASSES}
+# CSV is inside the folder labeled "important_files"
+TIDY_CSV_PATH = BASE_DIR / "important_files" / "davidson_courses_tidy.csv"
 
-# -------------------------
-# Generate students.csv (NO lottery column)
-# -------------------------
-with open("students.csv", "w", newline="") as f:
-    writer = csv.writer(f)
+# Where to write/read students.csv (in same folder as this script)
+STUDENTS_CSV_PATH = BASE_DIR / "students.csv"
 
-    header = [
-        "student_id","grade",
-        "choice1_1","choice1_2","choice1_3","choice1_4","choice1_5",
-        "choice2_1","choice2_2","choice2_3","choice2_4","choice2_5",
-        "choice3_1","choice3_2","choice3_3","choice3_4","choice3_5",
-        "choice4_1","choice4_2","choice4_3","choice4_4","choice4_5",
-    ]
-    writer.writerow(header)
 
-    for i in range(1, NUM_STUDENTS + 1):
-        grade = random.choice(GRADES)
-        row = [f"S{i:03}", grade]
+# ============================================================
+# HELPERS
+# ============================================================
+def _clean(s: Any) -> str:
+    return "" if s is None else str(s).strip()
 
-        for _ in range(4):
-            ranked_classes = random.sample(CLASS_IDS, 5)
-            row.extend(ranked_classes)
 
-        writer.writerow(row)
+def _to_int_or_none(s: Any) -> Optional[int]:
+    s = _clean(s)
+    if not s:
+        return None
+    try:
+        return int(s)
+    except ValueError:
+        return None
 
-print("students.csv generated successfully.")
 
-# -------------------------
-# Load Students
-# -------------------------
-students_by_grade = {9: [], 10: [], 11: [], 12: []}
+def _to_float_or_none(s: Any) -> Optional[float]:
+    s = _clean(s)
+    if not s:
+        return None
+    try:
+        return float(s)
+    except ValueError:
+        return None
 
-with open("students.csv", newline="") as f:
-    reader = csv.DictReader(f)
-    for row in reader:
 
-        choices = [
-            [row["choice1_1"], row["choice1_2"], row["choice1_3"], row["choice1_4"], row["choice1_5"]],
-            [row["choice2_1"], row["choice2_2"], row["choice2_3"], row["choice2_4"], row["choice2_5"]],
-            [row["choice3_1"], row["choice3_2"], row["choice3_3"], row["choice3_4"], row["choice3_5"]],
-            [row["choice4_1"], row["choice4_2"], row["choice4_3"], row["choice4_4"], row["choice4_5"]],
-        ]
+def parse_seats_value(seats_left: Any) -> tuple[Optional[int], Optional[int]]:
+    """
+    Seats field in your tidy CSV might look like:
+      - "23/25" (enrolled/capacity)
+      - "" or None
+      - "23" (ambiguous; we'll treat as enrolled, capacity unknown)
 
-        student = Student(
-            row["student_id"],
-            choices,
-            int(row["grade"])
+    Returns: (enrolled, capacity)
+    """
+    s = _clean(seats_left)
+    if not s:
+        return (None, None)
+
+    if "/" in s:
+        a, b = s.split("/", 1)
+        try:
+            return (int(a.strip()), int(b.strip()))
+        except ValueError:
+            return (None, None)
+
+    try:
+        return (int(s), None)
+    except ValueError:
+        return (None, None)
+
+
+def extract_class_id(cell: str) -> str:
+    """
+    Accepts:
+      - "20001"
+      - "20001 | Intro to Africana Studies"
+    Returns:
+      - "20001"
+    """
+    s = _clean(cell)
+    if not s:
+        return ""
+    if "|" in s:
+        s = s.split("|", 1)[0].strip()
+    return s
+
+
+# ============================================================
+# CLASS MODEL (tidy CSV -> Class)
+# ============================================================
+@dataclass
+class Class:
+    # identity
+    class_id: str  # CRN
+    subject: str
+    course_number: str
+    section: str
+    title: str
+
+    # logistics
+    credits: Optional[float] = None
+    instructor: str = ""
+    meeting_days: str = ""    # e.g. "MWF"
+    start_time: str = ""      # e.g. "1530"
+    end_time: str = ""        # e.g. "1620"
+    building: str = ""
+    room: str = ""
+
+    # enrollment
+    enrolled: Optional[int] = None
+    capacity: Optional[int] = None
+
+    raw: Dict[str, str] = field(default_factory=dict)
+
+    @staticmethod
+    def from_tidy_row(row: Dict[str, str]) -> "Class":
+        """
+        Tries common header variants. If your tidy CSV uses different headers,
+        update the 'pick()' keys below.
+        """
+        def pick(*keys: str) -> str:
+            for k in keys:
+                if k in row and _clean(row[k]) != "":
+                    return _clean(row[k])
+            return ""
+
+        crn = pick("crn", "CRN", "class_id", "Class ID")
+        subject = pick("subject", "SUBJECT", "subject_code", "Subject Code")
+        course_number = pick("course_number", "COURSE_NUMBER", "course", "Course Number")
+        section = pick("section", "SECTION", "sec", "Section")
+        title = pick("title", "TITLE", "course_title", "Course Title")
+
+        credits = _to_float_or_none(pick("credits", "CREDITS", "credit_hours", "Credit Hours"))
+
+        instructor = pick("instructor", "INSTRUCTOR", "instructors", "Instructor")
+        meeting_days = pick("weekdays", "WEEKDAYS", "days", "Days")
+        start_time = pick("start_time", "START_TIME", "Start Time")
+        end_time = pick("end_time", "END_TIME", "End Time")
+        building = pick("building", "BUILDING", "Building")
+        room = pick("room", "ROOM", "Room")
+
+        seats_field = pick("seats_left", "SEATS_LEFT", "seats", "Seats", "enrolled_capacity")
+        enrolled = _to_int_or_none(pick("enrolled", "ENROLLED"))
+        capacity = _to_int_or_none(pick("capacity", "CAPACITY"))
+
+        if enrolled is None and capacity is None and seats_field:
+            enrolled, capacity = parse_seats_value(seats_field)
+
+        if not crn:
+            raise ValueError(f"Missing CRN/class_id in row. Row keys: {list(row.keys())}")
+
+        return Class(
+            class_id=crn,
+            subject=subject,
+            course_number=course_number,
+            section=section,
+            title=title,
+            credits=credits,
+            instructor=instructor,
+            meeting_days=meeting_days,
+            start_time=start_time,
+            end_time=end_time,
+            building=building,
+            room=room,
+            enrolled=enrolled,
+            capacity=capacity,
+            raw=dict(row),
         )
 
-        students_by_grade[int(row["grade"])].append(student)
 
-# -------------------------
-# Assign Lottery (After Loading)
-# -------------------------
-def assign_lottery_by_grade(students_by_grade, grade_order):
+def load_classes_from_tidy_csv(path: Path) -> List[Class]:
+    if not path.exists():
+        raise FileNotFoundError(f"CSV not found at: {path}")
+
+    classes: List[Class] = []
+    with path.open(newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            classes.append(Class.from_tidy_row(row))
+    return classes
+
+
+# ============================================================
+# STUDENTS + LOTTERY
+# ============================================================
+class Student:
+    def __init__(self, student_id: str, choices: List[List[str]], grade: int):
+        self.student_id = student_id
+        self.choices = choices                  # list of ranked lists of CRNs
+        self.assigned_classes: List[Optional[str]] = [None] * len(choices)
+        self.grade = grade
+        self.lottery_number: Optional[int] = None
+
+
+def assign_lottery_by_grade(students_by_grade: Dict[int, List[Student]], grade_order: List[int]) -> None:
     """
     Assign fully random, unique lottery numbers.
-    Seniors get the lowest number range,
-    then juniors, then sophomores, etc.
+    Seniors get the lowest number range, then juniors, etc.
     """
-
     current_min = 1
 
     for grade in grade_order:
-        students = students_by_grade[grade]
+        students = students_by_grade.get(grade, [])
         count = len(students)
 
-        # Create unique number range for this grade
         grade_numbers = list(range(current_min, current_min + count))
-
-        # Shuffle numbers to make them non-sequential
         random.shuffle(grade_numbers)
-
-        # Shuffle students so pairing is random
         random.shuffle(students)
 
-        # Assign shuffled numbers to shuffled students
         for student, lottery_number in zip(students, grade_numbers):
             student.lottery_number = lottery_number
 
-        # Move range forward for next grade
         current_min += count
 
 assign_lottery_by_grade(
@@ -162,52 +248,47 @@ def check_for_duplicate_lottery_numbers(students_by_grade):
 # -------------------------
 # Scheduling Function
 # -------------------------
-def run_lottery(students):
+def run_lottery_for_grade(students):
     students_sorted = sorted(students, key=lambda s: s.lottery_number)
     num_choices = len(students_sorted[0].choices)
 
-    for choice_index in range(num_choices):
+    for round_idx in range(num_rounds):
         for student in students_sorted:
-            for class_id in student.choices[choice_index]:
-                cls = class_dict[class_id]
+            if student.assigned_classes[round_idx] is not None:
+                continue
 
-                if len(cls.enrolled_students) < cls.capacity:
-                    cls.enrolled_students.append(student.student_id)
-                    student.assigned_classes[choice_index] = cls.class_id
+            for class_id in student.choices[round_idx]:
+                if class_id not in class_dict:
+                    continue
+
+                if len(rosters[class_id]) < capacity_by_class_id[class_id]:
+                    rosters[class_id].append(student.student_id)
+                    student.assigned_classes[round_idx] = class_id
                     break
 
 # -------------------------
 # Run Scheduling
 # -------------------------
-run_lottery(students_by_grade[12])
-run_lottery(students_by_grade[11])
-run_lottery(students_by_grade[10])
-run_lottery(students_by_grade[9])
+run_lottery_for_grade(students_by_grade[12])
+run_lottery_for_grade(students_by_grade[11])
+run_lottery_for_grade(students_by_grade[10])
+run_lottery_for_grade(students_by_grade[9])
 
-# -------------------------
-# Output Results
-# -------------------------
-all_students = (
-    students_by_grade[12] +
-    students_by_grade[11] +
-    students_by_grade[10] +
-    students_by_grade[9]
-)
+    # 8) Output results
+    all_students = students_by_grade[12] + students_by_grade[11] + students_by_grade[10] + students_by_grade[9]
 
-print("\n---- Student Schedules ----")
-for student in all_students:
-    print(f"\nStudent {student.student_id} (Grade {student.grade}) - Lottery #{student.lottery_number}")
-    for idx, class_id in enumerate(student.assigned_classes):
-        if class_id:
-            cls = class_dict[class_id]
-            print(f" Choice {idx+1}: {cls.name} ({cls.time}, {cls.location})")
-        else:
-            print(f" Choice {idx+1}: No class assigned")
+    print("\n---- Student Schedules ----")
+    for student in all_students:
+        print(f"\nStudent {student.student_id} (Grade {student.grade}) - Lottery #{student.lottery_number}")
+        for idx, class_id in enumerate(student.assigned_classes):
+            if class_id:
+                cls = class_dict[class_id]
+                print(f" Round {idx+1}: {cls.class_id} | {class_pretty(cls)}")
+            else:
+                print(f" Round {idx+1}: No class assigned")
 
 print("\n---- Final Class Enrollment ----")
 for cls in CLASSES:
     print(f"{cls.name} ({cls.class_id}) - {len(cls.enrolled_students)}/{cls.capacity}")
     print(" Students:", cls.enrolled_students)
 
-print_lottery_by_grade(students_by_grade)
-check_for_duplicate_lottery_numbers(students_by_grade)
