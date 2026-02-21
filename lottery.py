@@ -215,94 +215,42 @@ def assign_lottery_by_grade(students_by_grade: Dict[int, List[Student]], grade_o
 
         current_min += count
 
+assign_lottery_by_grade(
+    students_by_grade,
+    grade_order=[12, 11, 10, 9]
+)
 
-def generate_students_csv(
-    out_path: Path,
-    class_ids: List[str],
-    class_dict: Dict[str, Class],
-    num_students: int = 200,
-    grades: List[int] = [9, 10, 11, 12],
-    num_rounds: int = 4,
-    picks_per_round: int = 5,
-) -> None:
-    """
-    Creates students.csv with columns:
-      student_id, grade, choice1_1..choice1_5, ..., choice4_1..choice4_5
+# -------------------------
+# Lottery Debug Tools
+# -------------------------
+def print_lottery_by_grade(students_by_grade):
+    for grade in sorted(students_by_grade.keys(), reverse=True):
+        print(f"\n--- Grade {grade} Lottery Order ---")
+        students = students_by_grade[grade]  # keep original shuffled order
+        for student in students:
+            print(f"{student.student_id} -> Lottery #{student.lottery_number}")
 
-    Each choice cell is written as:
-      "CRN | Title"
-    Scheduler will parse CRN back out when loading.
-    """
-    if len(class_ids) == 0:
-        raise ValueError("No classes available to sample from. Your tidy CSV load returned 0 classes.")
+def check_for_duplicate_lottery_numbers(students_by_grade):
+    seen = set()
+    duplicates = []
+    for grade in students_by_grade:
+        for student in students_by_grade[grade]:
+            if student.lottery_number in seen:
+                duplicates.append(student.lottery_number)
+            else:
+                seen.add(student.lottery_number)
 
-    header = ["student_id", "grade"]
-    for r in range(1, num_rounds + 1):
-        for k in range(1, picks_per_round + 1):
-            header.append(f"choice{r}_{k}")
+    if duplicates:
+        print("Duplicate lottery numbers found:", duplicates)
+    else:
+        print("No duplicate lottery numbers.")
 
-    def label(cid: str) -> str:
-        cls = class_dict.get(cid)
-        title = cls.title if cls else ""
-        return f"{cid} | {title}" if title else cid
-
-    with out_path.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        writer.writerow(header)
-
-        for i in range(1, num_students + 1):
-            grade = random.choice(grades)
-            row = [f"S{i:03}", grade]
-
-            for _ in range(num_rounds):
-                k = min(picks_per_round, len(class_ids))
-                ranked_ids = random.sample(class_ids, k)
-
-                ranked_cells = [label(cid) for cid in ranked_ids]
-                ranked_cells += [""] * (picks_per_round - len(ranked_cells))
-                row.extend(ranked_cells)
-
-            writer.writerow(row)
-
-
-def load_students_from_csv(path: Path, num_rounds: int = 4, picks_per_round: int = 5) -> Dict[int, List[Student]]:
-    students_by_grade: Dict[int, List[Student]] = {9: [], 10: [], 11: [], 12: []}
-
-    with path.open(newline="", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            grade = int(row["grade"])
-            choices: List[List[str]] = []
-
-            for r in range(1, num_rounds + 1):
-                ranked: List[str] = []
-                for k in range(1, picks_per_round + 1):
-                    raw_cell = row.get(f"choice{r}_{k}", "")
-                    cid = extract_class_id(raw_cell)
-                    if cid:
-                        ranked.append(cid)
-                choices.append(ranked)
-
-            students_by_grade[grade].append(Student(row["student_id"], choices, grade))
-
-    return students_by_grade
-
-
-def run_lottery_for_grade(
-    students: List[Student],
-    class_dict: Dict[str, Class],
-    rosters: Dict[str, List[str]],
-    capacity_by_class_id: Dict[str, int],
-) -> None:
-    """
-    For each "round" of choices: process students in lottery order.
-    Attempt to place them into their highest available choice.
-    """
-    students_sorted = sorted(students, key=lambda s: (s.lottery_number is None, s.lottery_number))
-    if not students_sorted:
-        return
-
-    num_rounds = len(students_sorted[0].choices)
+# -------------------------
+# Scheduling Function
+# -------------------------
+def run_lottery_for_grade(students):
+    students_sorted = sorted(students, key=lambda s: s.lottery_number)
+    num_choices = len(students_sorted[0].choices)
 
     for round_idx in range(num_rounds):
         for student in students_sorted:
@@ -318,77 +266,13 @@ def run_lottery_for_grade(
                     student.assigned_classes[round_idx] = class_id
                     break
 
-
-def class_pretty(cls: Class) -> str:
-    where = " ".join([x for x in [cls.building, cls.room] if x])
-    time = " ".join([x for x in [cls.meeting_days, f"{cls.start_time}-{cls.end_time}".strip("-")] if x])
-    bits = [cls.title]
-    if time:
-        bits.append(time)
-    if where:
-        bits.append(where)
-    return " | ".join(bits)
-
-
-# ============================================================
-# MAIN
-# ============================================================
-if __name__ == "__main__":
-    # 1) Load classes from tidy CSV
-    CLASSES = load_classes_from_tidy_csv(TIDY_CSV_PATH)
-    class_dict: Dict[str, Class] = {c.class_id: c for c in CLASSES}
-    CLASS_IDS = list(class_dict.keys())
-
-    print(f"Loaded {len(CLASSES)} classes from: {TIDY_CSV_PATH}")
-
-    # 2) Capacity setup
-    # Turn this on for testing: every class capacity = 25
-    FORCE_CAPACITY_25_FOR_TESTING = True
-
-    capacity_by_class_id: Dict[str, int] = {}
-    for c in CLASSES:
-        if FORCE_CAPACITY_25_FOR_TESTING:
-            capacity_by_class_id[c.class_id] = 25
-        else:
-            capacity_by_class_id[c.class_id] = c.capacity if c.capacity is not None else 25
-
-    # 3) Build rosters
-    rosters: Dict[str, List[str]] = {cid: [] for cid in CLASS_IDS}
-
-    # 4) Generate students.csv (with "CRN | Title") if desired
-    REGENERATE_STUDENTS_CSV = True
-    NUM_STUDENTS = 200
-    GRADES = [9, 10, 11, 12]
-    NUM_ROUNDS = 4
-    PICKS_PER_ROUND = 5
-
-    if REGENERATE_STUDENTS_CSV:
-        generate_students_csv(
-            out_path=STUDENTS_CSV_PATH,
-            class_ids=CLASS_IDS,
-            class_dict=class_dict,
-            num_students=NUM_STUDENTS,
-            grades=GRADES,
-            num_rounds=NUM_ROUNDS,
-            picks_per_round=PICKS_PER_ROUND,
-        )
-        print(f"students.csv generated at: {STUDENTS_CSV_PATH}")
-
-    # 5) Load students (parses CRN out of "CRN | Title")
-    students_by_grade = load_students_from_csv(
-        STUDENTS_CSV_PATH,
-        num_rounds=NUM_ROUNDS,
-        picks_per_round=PICKS_PER_ROUND,
-    )
-
-    # 6) Assign lottery numbers (seniors first)
-    assign_lottery_by_grade(students_by_grade, grade_order=[12, 11, 10, 9])
-
-    # 7) Run scheduling by grade
-    run_lottery_for_grade(students_by_grade[12], class_dict, rosters, capacity_by_class_id)
-    run_lottery_for_grade(students_by_grade[11], class_dict, rosters, capacity_by_class_id)
-    run_lottery_for_grade(students_by_grade[10], class_dict, rosters, capacity_by_class_id)
-    run_lottery_for_grade(students_by_grade[9],  class_dict, rosters, capacity_by_class_id)
+# -------------------------
+# Run Scheduling
+# -------------------------
+run_lottery_for_grade(students_by_grade[12])
+run_lottery_for_grade(students_by_grade[11])
+run_lottery_for_grade(students_by_grade[10])
+run_lottery_for_grade(students_by_grade[9])
 
     # 8) Output results
     all_students = students_by_grade[12] + students_by_grade[11] + students_by_grade[10] + students_by_grade[9]
