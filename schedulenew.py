@@ -408,5 +408,3 @@ for cls in CLASSES:
     print(f"{cls.name} ({cls.class_id}) - {len(cls.enrolled_students)}/{cls.capacity}")
     print(" Students:", cls.enrolled_students)
 
-print_lottery_by_grade(students_by_grade)
-check_for_duplicate_lottery_numbers(students_by_grade)
