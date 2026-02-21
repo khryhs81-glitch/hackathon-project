@@ -10,9 +10,9 @@ import os
 from pathlib import Path
 from typing import Generator
 
-from sqlalchemy import create_engine
-from sqlalchemy.engine import Engine
-from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+from sqlalchemy import create_engine # type: ignore
+from sqlalchemy.engine import Engine # type: ignore
+from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker # type: ignore
 
 
 BASE_DIR = Path(__file__).resolve().parent
