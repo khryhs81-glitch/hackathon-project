@@ -357,15 +357,9 @@ def status(db: Session = Depends(db_session)):
 
 # ---- Courses ----
 @app.get("/api/classes")
-def api_classes():
-    """
-    Frontend expects this to exist.
-    """
-    try:
-        classes = load_classes_from_tidy_csv()
-        return {"classes": classes, "count": len(classes)}
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+def api_classes(wrap: bool = False):
+    classes = load_classes_from_tidy_csv()
+    return {"classes": classes, "count": len(classes)} if wrap else classes
 
 
 # ---- Picks submission ----
