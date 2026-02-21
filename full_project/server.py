@@ -1,159 +1,188 @@
-from __future__ import annotations
+# server.py
+import os
+from typing import List, Optional, Dict, Any
 
-from pathlib import Path
-from typing import Any, Dict, List, Optional
-
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Depends, Header, HTTPException
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
 
-import scrape_davidson_courses as scraper
-import tidy_courses_scv as tidy
-import schedulenew as scheduler
+from database import engine, Base, get_db
+from models import Student, Pick, LotteryRun, Assignment
 
-BASE_DIR = Path(__file__).resolve().parent
-STATIC_DIR = BASE_DIR / "static"
-IMPORTANT_DIR = BASE_DIR / "important_files"
+import schedulenew  # your scheduler file
 
-SCRAPE_PREFIX = BASE_DIR / "davidson_courses"
-NORMALIZED_CSV = Path(f"{SCRAPE_PREFIX}_normalized.csv")
-TIDY_CSV = IMPORTANT_DIR / "davidson_courses_tidy.csv"
+ADMIN_TOKEN = os.getenv("ADMIN_TOKEN", "")
 
-app = FastAPI(title="Davidson Schedule Maker")
+app = FastAPI()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # tighten later
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Serve your frontend (static/index.html)
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
-STATIC_DIR.mkdir(exist_ok=True)
-IMPORTANT_DIR.mkdir(exist_ok=True)
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+@app.on_event("startup")
+def startup():
+    # Simple “migration”: create tables if missing
+    Base.metadata.create_all(bind=engine)
 
+# ---------------------------
+# Pydantic request models
+# ---------------------------
+class StudentPicks(BaseModel):
+    student_id: str = Field(..., min_length=1)
+    grade: int = Field(..., ge=9, le=12)
+    choices: List[List[str]] = Field(..., min_length=4, max_length=4)
 
-class ClassOut(BaseModel):
-    class_id: str
-    subject: str = ""
-    course_number: str = ""
-    section: str = ""
-    title: str = ""
-    credits: Optional[float] = None
-    instructor: str = ""
-    meeting_days: str = ""
-    time_range: str = ""
-    start_time: str = ""
-    end_time: str = ""
-    building: str = ""
-    room: str = ""
-    enrolled: Optional[int] = None
-    capacity: Optional[int] = None
+class SubmitPicksRequest(BaseModel):
+    student: StudentPicks
 
+class GlobalRunRequest(BaseModel):
+    force_capacity: Optional[int] = Field(default=None, ge=1)
 
-class StudentIn(BaseModel):
-    student_id: str
-    grade: int = 12
-    choices: List[List[str]] = Field(default_factory=list)
+# ---------------------------
+# Helpers
+# ---------------------------
+def require_admin(x_admin_token: str = Header(default="")):
+    if not ADMIN_TOKEN:
+        raise HTTPException(status_code=500, detail="ADMIN_TOKEN is not set on server.")
+    if x_admin_token != ADMIN_TOKEN:
+        raise HTTPException(status_code=401, detail="Invalid admin token.")
 
+def normalize_choices(choices: List[List[str]], max_per_round: int = 5) -> List[List[str]]:
+    out: List[List[str]] = []
+    for r in range(4):
+        round_list = choices[r] if r < len(choices) and isinstance(choices[r], list) else []
+        round_list = [str(x).strip() for x in round_list if str(x).strip()]
+        out.append(round_list[:max_per_round])
+    return out
 
-class LotteryRequest(BaseModel):
-    students: List[StudentIn] = Field(default_factory=list)
-    force_capacity: Optional[int] = 25
+def latest_run_id(db: Session) -> Optional[int]:
+    row = db.query(LotteryRun).order_by(LotteryRun.id.desc()).first()
+    return row.id if row else None
 
+# ---------------------------
+# Student: submit picks
+# ---------------------------
+@app.post("/api/submit_picks")
+def submit_picks(req: SubmitPicksRequest, db: Session = Depends(get_db)):
+    s = req.student
+    choices = normalize_choices(s.choices)
 
-@app.get("/", response_class=HTMLResponse)
-def home() -> HTMLResponse:
-    index_path = STATIC_DIR / "index.html"
-    if not index_path.exists():
-        return HTMLResponse("<h2>Missing static/index.html</h2>", status_code=500)
-    return HTMLResponse(index_path.read_text(encoding="utf-8"))
+    # Upsert student
+    student = db.query(Student).filter(Student.student_id == s.student_id).first()
+    if not student:
+        student = Student(student_id=s.student_id, grade=s.grade)
+        db.add(student)
+    else:
+        student.grade = s.grade
 
+    # Delete previous picks and replace (simplest approach)
+    db.query(Pick).filter(Pick.student_id == s.student_id).delete()
 
-@app.get("/api/classes", response_model=List[ClassOut])
-def get_classes() -> List[ClassOut]:
-    try:
-        classes = scheduler.load_classes_from_tidy_csv(scheduler.TIDY_CSV_PATH)
-    except FileNotFoundError as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"{e}. If you haven't generated the tidy CSV yet, call POST /api/refresh first.",
-        )
+    # Insert picks
+    for round_index, picks in enumerate(choices, start=1):
+        for rank_index, class_id in enumerate(picks, start=1):
+            db.add(Pick(
+                student_id=s.student_id,
+                round=round_index,
+                rank=rank_index,
+                class_id=class_id
+            ))
 
-    return [
-        ClassOut(
-            class_id=c.class_id,
-            subject=c.subject,
-            course_number=c.course_number,
-            section=c.section,
-            title=c.title,
-            credits=c.credits,
-            instructor=c.instructor,
-            meeting_days=c.meeting_days,
-            time_range=c.time_range,
-            start_time=c.start_time,
-            end_time=c.end_time,
-            building=c.building,
-            room=c.room,
-            enrolled=c.enrolled,
-            capacity=c.capacity,
-        )
-        for c in classes
-    ]
+    db.commit()
+    return {"ok": True, "message": "Picks saved."}
 
+# ---------------------------
+# Student: view my picks
+# ---------------------------
+@app.get("/api/picks/{student_id}")
+def get_picks(student_id: str, db: Session = Depends(get_db)):
+    rows = db.query(Pick).filter(Pick.student_id == student_id).order_by(Pick.round, Pick.rank).all()
+    choices = [[] for _ in range(4)]
+    for p in rows:
+        if 1 <= p.round <= 4:
+            choices[p.round - 1].append(p.class_id)
+    return {"ok": True, "student_id": student_id, "choices": choices}
 
-@app.post("/api/run_lottery")
-def run_lottery(req: LotteryRequest) -> Dict[str, Any]:
-    payload = [s.model_dump() for s in req.students]
-    try:
-        return scheduler.run_lottery_from_payload(
-            payload,
-            force_capacity=req.force_capacity,
-            grade_order=[12, 11, 10, 9],
-        )
-    except FileNotFoundError as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"{e}. Generate a tidy CSV first (POST /api/refresh) or place it at: {scheduler.TIDY_CSV_PATH}",
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# ---------------------------
+# Admin: run ONE global lottery for everyone
+# ---------------------------
+@app.post("/api/admin/run_global_lottery")
+def run_global_lottery(
+    body: GlobalRunRequest,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_admin),
+):
+    # Collect all students
+    students = db.query(Student).all()
+    if not students:
+        return JSONResponse(status_code=400, content={"ok": False, "error": "No students have submitted picks yet."})
 
+    # Build student payloads from DB picks
+    student_payloads: List[Dict[str, Any]] = []
+    for st in students:
+        picks = db.query(Pick).filter(Pick.student_id == st.student_id).order_by(Pick.round, Pick.rank).all()
+        choices = [[] for _ in range(4)]
+        for p in picks:
+            if 1 <= p.round <= 4:
+                choices[p.round - 1].append(p.class_id)
 
-@app.post("/api/refresh")
-async def refresh(
-    term: str = "202502",
-    limit: int = 50,
-    headless: bool = True,
-    test_seats_available: int = 25,
-) -> Dict[str, Any]:
-    """
-    1) Run the Playwright scraper -> writes *normalized.csv
-    2) Run tidy conversion -> writes important_files/davidson_courses_tidy.csv
-    """
-    try:
-        await scraper.run(
-            term_code=term,
-            limit=limit,
-            out_prefix=str(SCRAPE_PREFIX),
-            headless=headless,
-            discover_wait=10000,
-            test_seats_available=test_seats_available,
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Scrape failed: {e}")
+        student_payloads.append({
+            "student_id": st.student_id,
+            "grade": st.grade,
+            "choices": choices
+        })
 
-    try:
-        out_path = tidy.make_tidy_csv(src=NORMALIZED_CSV, out=TIDY_CSV)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Tidy conversion failed: {e}")
+    # Call your scheduler
+    # IMPORTANT: adjust this line to match your schedulenew API.
+    if hasattr(schedulenew, "run_lottery"):
+        results = schedulenew.run_lottery(student_payloads, force_capacity=body.force_capacity)
+    else:
+        raise HTTPException(status_code=500, detail="schedulenew.py must expose run_lottery(students, force_capacity=...).")
 
-    return {
-        "ok": True,
-        "normalized_csv": str(NORMALIZED_CSV),
-        "tidy_csv": str(out_path),
-        "note": "Now open / and click 'Reload Classes'.",
-    }
+    # Create a new run
+    run = LotteryRun(status="completed")
+    db.add(run)
+    db.commit()
+    db.refresh(run)
+
+    # Store assignments
+    # Expected shape assumption:
+    # results = { "students": [ { "student_id": "...", "assigned_classes": [cid1, cid2, cid3, cid4] } ] }
+    # If your scheduler output differs, we’ll adapt this mapping.
+    students_out = results.get("students", results)  # fallback if it returns list directly
+
+    # wipe any accidental partials for this run id (should be none)
+    db.query(Assignment).filter(Assignment.run_id == run.id).delete()
+
+    for sres in students_out:
+        sid = sres.get("student_id")
+        assigned = sres.get("assigned_classes", [])
+        # ensure length 4
+        assigned = (assigned + [None, None, None, None])[:4]
+        for r in range(1, 5):
+            db.add(Assignment(run_id=run.id, student_id=sid, round=r, class_id=assigned[r-1]))
+
+    db.commit()
+    return {"ok": True, "run_id": run.id}
+
+# ---------------------------
+# Student: get results from latest run
+# ---------------------------
+@app.get("/api/results/{student_id}")
+def get_results(student_id: str, db: Session = Depends(get_db)):
+    run_id = latest_run_id(db)
+    if not run_id:
+        return {"ok": True, "run_id": None, "student_id": student_id, "assigned_classes": [None, None, None, None]}
+
+    rows = db.query(Assignment).filter(
+        Assignment.run_id == run_id,
+        Assignment.student_id == student_id
+    ).order_by(Assignment.round).all()
+
+    assigned = [None, None, None, None]
+    for a in rows:
+        if 1 <= a.round <= 4:
+            assigned[a.round - 1] = a.class_id
+
+    return {"ok": True, "run_id": run_id, "student_id": student_id, "assigned_classes": assigned}
