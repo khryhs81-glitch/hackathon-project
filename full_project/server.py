@@ -40,10 +40,10 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 # SQLAlchemy (works with sqlite or postgres)
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy import select # type: ignore
+from sqlalchemy.orm import Session # type: ignore
 
-from full_project.database import Base, engine, get_db
+from database import Base, engine, get_db
 from models import LotteryResult, StudentSubmission
 
 
