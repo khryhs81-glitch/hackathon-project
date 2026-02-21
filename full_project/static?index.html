@@ -1,0 +1,307 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Davidson Schedule Maker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 24px; }
+      h1 { margin: 0 0 8px; }
+      .muted { color: #666; }
+      .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin: 12px 0; }
+      button { padding: 10px 14px; cursor: pointer; }
+      input, select { padding: 8px; }
+      .error { color: #b00020; white-space: pre-wrap; }
+      .panel { border: 1px solid #ddd; border-radius: 12px; padding: 14px; margin: 12px 0; }
+      .studentHead { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+      .studentHead input { width: 160px; }
+      .studentHead select { width: 110px; }
+      .round { margin-top: 10px; }
+      .round label { display:block; font-weight: 600; margin-bottom: 6px; }
+      .picks { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+      @media (max-width: 900px) { .picks { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+      .resultCard { border: 1px solid #ddd; border-radius: 12px; padding: 14px; margin-top: 12px; }
+      table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+      th, td { border: 1px solid #eee; padding: 8px; vertical-align: top; }
+      th { text-align: left; background: #fafafa; }
+      .small { font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <h1>Davidson Schedule Maker</h1>
+    <div class="muted">Scrape/build CSV → reload classes → add students → run lottery.</div>
+
+    <div class="row">
+      <button id="refreshBtn">Scrape + Build Tidy CSV</button>
+      <button id="loadBtn">Reload Classes</button>
+      <button id="addStudentBtn">Add Student</button>
+      <button id="runBtn">Run Lottery</button>
+
+      <label class="muted">Force capacity:
+        <input id="forceCap" type="number" value="25" min="1" style="width:90px" />
+      </label>
+    </div>
+
+    <div id="status" class="muted"></div>
+    <div id="error" class="error"></div>
+
+    <div id="students"></div>
+
+    <h2>Results</h2>
+    <div id="results"></div>
+
+    <script>
+      const statusEl = document.getElementById("status");
+      const errorEl = document.getElementById("error");
+      const studentsEl = document.getElementById("students");
+      const resultsEl = document.getElementById("results");
+
+      let classes = [];
+
+      function setStatus(msg) { statusEl.textContent = msg || ""; }
+      function setError(msg) { errorEl.textContent = msg || ""; }
+
+      function classLabel(c) {
+        const code = [c.subject, c.course_number].filter(Boolean).join(" ");
+        const sec = c.section ? `-${c.section}` : "";
+        const display = (code + sec).trim() || `CRN ${c.class_id}`;
+        return `${display} | ${c.class_id} | ${c.title || ""}`.trim();
+      }
+
+      function makeSelectOptions() {
+        const frag = document.createDocumentFragment();
+        const empty = document.createElement("option");
+        empty.value = "";
+        empty.textContent = "(none)";
+        frag.appendChild(empty);
+
+        for (const c of classes) {
+          const opt = document.createElement("option");
+          opt.value = c.class_id;
+          opt.textContent = classLabel(c);
+          frag.appendChild(opt);
+        }
+        return frag;
+      }
+
+      function addStudentCard(prefill = {}) {
+        const panel = document.createElement("div");
+        panel.className = "panel";
+
+        const head = document.createElement("div");
+        head.className = "studentHead";
+
+        const idInput = document.createElement("input");
+        idInput.placeholder = "Student ID (e.g. S001)";
+        idInput.value = prefill.student_id || "";
+
+        const gradeSelect = document.createElement("select");
+        [12,11,10,9].forEach(g => {
+          const opt = document.createElement("option");
+          opt.value = g;
+          opt.textContent = `Grade ${g}`;
+          gradeSelect.appendChild(opt);
+        });
+        gradeSelect.value = (prefill.grade || 12);
+
+        const delBtn = document.createElement("button");
+        delBtn.textContent = "Remove";
+        delBtn.addEventListener("click", () => panel.remove());
+
+        head.appendChild(idInput);
+        head.appendChild(gradeSelect);
+        head.appendChild(delBtn);
+        panel.appendChild(head);
+
+        const optionsFrag = makeSelectOptions();
+
+        for (let r = 1; r <= 4; r++) {
+          const roundDiv = document.createElement("div");
+          roundDiv.className = "round";
+
+          const label = document.createElement("label");
+          label.textContent = `Round ${r} picks (top → bottom priority)`;
+          roundDiv.appendChild(label);
+
+          const picksDiv = document.createElement("div");
+          picksDiv.className = "picks";
+
+          for (let k = 1; k <= 5; k++) {
+            const sel = document.createElement("select");
+            sel.appendChild(optionsFrag.cloneNode(true));
+            sel.dataset.round = r;
+            sel.dataset.pick = k;
+
+            const pre = (prefill.choices && prefill.choices[r-1] && prefill.choices[r-1][k-1]) ? prefill.choices[r-1][k-1] : "";
+            sel.value = pre;
+
+            picksDiv.appendChild(sel);
+          }
+
+          roundDiv.appendChild(picksDiv);
+          panel.appendChild(roundDiv);
+        }
+
+        panel._getStudent = () => {
+          const student_id = (idInput.value || "").trim();
+          const grade = parseInt(gradeSelect.value, 10);
+
+          const choices = [];
+          for (let r = 1; r <= 4; r++) {
+            const round = [];
+            const sels = panel.querySelectorAll(`select[data-round="${r}"]`);
+            sels.forEach(s => {
+              const v = (s.value || "").trim();
+              if (v) round.push(v);
+            });
+            choices.push(round);
+          }
+          return { student_id, grade, choices };
+        };
+
+        studentsEl.appendChild(panel);
+      }
+
+      async function refreshData() {
+        setError("");
+        setStatus("Running scraper + tidy conversion...");
+        resultsEl.innerHTML = "";
+        const res = await fetch("/api/refresh", { method: "POST" });
+        const text = await res.text();
+        if (!res.ok) throw new Error(text);
+        setStatus("Refresh complete. Now click 'Reload Classes'.");
+      }
+
+      async function loadClasses() {
+        setError("");
+        setStatus("Loading classes...");
+        resultsEl.innerHTML = "";
+
+        const res = await fetch("/api/classes");
+        const text = await res.text();
+        if (!res.ok) throw new Error(text);
+
+        classes = JSON.parse(text);
+        setStatus(`Loaded ${classes.length} classes.`);
+
+        const selects = studentsEl.querySelectorAll("select");
+        selects.forEach(sel => {
+          if (sel.dataset && sel.dataset.round) {
+            const current = sel.value;
+            sel.innerHTML = "";
+            sel.appendChild(makeSelectOptions());
+            sel.value = current;
+          }
+        });
+      }
+
+      async function runLottery() {
+        setError("");
+        setStatus("Running lottery...");
+        resultsEl.innerHTML = "";
+
+        const panels = Array.from(studentsEl.querySelectorAll(".panel"));
+        const students = panels.map(p => p._getStudent()).filter(s => s.student_id);
+
+        if (students.length === 0) {
+          setStatus("");
+          setError("Add at least one student with an ID.");
+          return;
+        }
+
+        const force_capacity_raw = document.getElementById("forceCap").value;
+        const force_capacity = force_capacity_raw ? parseInt(force_capacity_raw, 10) : null;
+
+        const res = await fetch("/api/run_lottery", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ students, force_capacity })
+        });
+
+        const text = await res.text();
+        if (!res.ok) throw new Error(text);
+
+        const data = JSON.parse(text);
+
+        const studentCard = document.createElement("div");
+        studentCard.className = "resultCard";
+        studentCard.innerHTML = "<h3>Student assignments</h3>";
+
+        const stTable = document.createElement("table");
+        stTable.innerHTML = `
+          <thead><tr><th>Student</th><th>Grade</th><th>Lottery #</th><th>Assigned (Rounds 1-4)</th></tr></thead>
+          <tbody></tbody>
+        `;
+        const stBody = stTable.querySelector("tbody");
+        const classById = new Map(classes.map(c => [c.class_id, c]));
+
+        for (const st of data.students) {
+          const tr = document.createElement("tr");
+          const assigned = (st.assigned_classes || []).map((cid, i) => {
+            if (!cid) return `R${i+1}: (none)`;
+            const c = classById.get(cid);
+            return `R${i+1}: ${c ? classLabel(c) : cid}`;
+          }).join("\n");
+
+          tr.innerHTML = `
+            <td>${st.student_id}</td>
+            <td>${st.grade}</td>
+            <td>${st.lottery_number ?? ""}</td>
+            <td class="small" style="white-space: pre-wrap">${assigned}</td>
+          `;
+          stBody.appendChild(tr);
+        }
+
+        studentCard.appendChild(stTable);
+        resultsEl.appendChild(studentCard);
+
+        const classCard = document.createElement("div");
+        classCard.className = "resultCard";
+        classCard.innerHTML = "<h3>Class rosters (most filled first)</h3>";
+
+        const sortedClasses = (data.classes || []).slice().sort((a,b) => (b.enrolled_roster_count - a.enrolled_roster_count));
+
+        const cTable = document.createElement("table");
+        cTable.innerHTML = `
+          <thead><tr><th>Class</th><th>Title</th><th>Roster</th><th>Students</th></tr></thead>
+          <tbody></tbody>
+        `;
+        const cBody = cTable.querySelector("tbody");
+
+        sortedClasses.slice(0, 30).forEach(c => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${c.display || c.class_id}</td>
+            <td>${c.title || ""}</td>
+            <td>${c.enrolled_roster_count}/${c.capacity}</td>
+            <td class="small">${(c.roster || []).join(", ")}</td>
+          `;
+          cBody.appendChild(tr);
+        });
+
+        classCard.appendChild(cTable);
+        resultsEl.appendChild(classCard);
+
+        setStatus("Done.");
+      }
+
+      document.getElementById("refreshBtn").addEventListener("click", () => {
+        refreshData().catch(err => { setStatus(""); setError(String(err)); });
+      });
+      document.getElementById("loadBtn").addEventListener("click", () => {
+        loadClasses().catch(err => { setStatus(""); setError(String(err)); });
+      });
+      document.getElementById("addStudentBtn").addEventListener("click", () => {
+        addStudentCard({ grade: 12, choices: [[],[],[],[]] });
+      });
+      document.getElementById("runBtn").addEventListener("click", () => {
+        runLottery().catch(err => { setStatus(""); setError(String(err)); });
+      });
+
+      addStudentCard({ student_id: "S001", grade: 12, choices: [[],[],[],[]] });
+      loadClasses().catch(() => {
+        setStatus("If classes fail to load, click 'Scrape + Build Tidy CSV' first.");
+      });
+    </script>
+  </body>
+</html>
