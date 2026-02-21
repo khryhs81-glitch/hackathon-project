@@ -908,6 +908,35 @@
       function safeText(x){ return (x === null || x === undefined) ? "" : String(x); }
       function clamp(n,a,b){ return Math.max(a, Math.min(b,n)); }
 
+
+// Base URL for API calls.
+// - Default: same-origin (works on DigitalOcean when the backend serves this file).
+// - If you open this file as file:// for local testing, set localStorage.api_base to e.g. http://localhost:8001
+const API_BASE = (() => {
+  let base = (localStorage.getItem("api_base") || "").trim();
+  if (!base && window.location.protocol === "file:") base = "http://localhost:8001";
+  return base.replace(/\/+$/, "");
+})();
+
+function apiUrl(path){
+  if (!path.startsWith("/")) path = "/" + path;
+  return API_BASE ? (API_BASE + path) : path;
+}
+
+function apiFetch(path, options){
+  return fetch(apiUrl(path), options);
+}
+
+function getAdminToken(promptIfMissing=true){
+  let t = (sessionStorage.getItem("admin_token") || "").trim();
+  if (!t && promptIfMissing){
+    t = (prompt("Admin token (X-Admin-Token):") || "").trim();
+    if (t) sessionStorage.setItem("admin_token", t);
+  }
+  return t;
+}
+
+
       function setError(msg){
         const box = $("errorBox");
         if (!msg){ box.style.display="none"; box.textContent=""; return; }
@@ -1693,7 +1722,7 @@
         setError("");
         $("statusPill").textContent = "Status: loading courses…";
         try{
-          const res = await fetch("/api/classes");
+          const res = await apiFetch("/api/classes");
           const text = await res.text();
           if (!res.ok) throw new Error(text);
 
@@ -1754,7 +1783,7 @@
         $("serverPill").className = "pill warn";
 
         try{
-          const res = await fetch("/api/submit_picks", {
+          const res = await apiFetch("/api/submit_picks", {
             method:"POST",
             headers:{ "Content-Type":"application/json" },
             body: JSON.stringify(payload)
@@ -1792,7 +1821,7 @@
         $("statusPill").textContent = "Status: checking results…";
 
         try{
-          const res = await fetch(`/api/results/${encodeURIComponent(sid)}`);
+          const res = await apiFetch(`/api/results/${encodeURIComponent(sid)}`);
           const data = await res.json().catch(() => ({}));
 
           if (!res.ok || !data.ok){
@@ -1908,7 +1937,7 @@
         $("serverPill").className = "pill warn";
 
         try{
-          const res = await fetch("/api/admin/run_global_lottery", {
+          const res = await apiFetch("/api/admin/run_global_lottery", {
             method:"POST",
             headers:{
               "Content-Type":"application/json",

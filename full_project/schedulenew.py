@@ -277,13 +277,21 @@ def run_lottery_from_payload(
     students_payload: List[Dict[str, Any]],
     *,
     force_capacity: Optional[int] = None,
-    grade_order: List[int] = [12, 11, 10, 9],
+    grade_order: tuple[int, ...] = (12, 11, 10, 9),
 ) -> Dict[str, Any]:
+    grade_order_list = list(grade_order)
     classes = load_classes_from_tidy_csv(TIDY_CSV_PATH)
     class_dict: Dict[str, Class] = {c.class_id: c for c in classes}
     class_ids = list(class_dict.keys())
 
     capacity_by_class_id: Dict[str, int] = {}
+    if force_capacity is not None:
+        try:
+            force_capacity = int(force_capacity)
+        except Exception:
+            raise ValueError("force_capacity must be an integer")
+        if force_capacity <= 0:
+            raise ValueError("force_capacity must be > 0")
     for c in classes:
         capacity_by_class_id[c.class_id] = int(force_capacity) if force_capacity is not None else (c.capacity if c.capacity is not None else 25)
 
@@ -306,7 +314,7 @@ def run_lottery_from_payload(
                 norm_choices.append([])
         students_by_grade.setdefault(grade, []).append(Student(sid, norm_choices, grade))
 
-    assign_lottery_by_grade(students_by_grade, grade_order=grade_order)
+    assign_lottery_by_grade(students_by_grade, grade_order=grade_order_list)
 
     for g in grade_order:
         run_lottery_for_grade(students_by_grade.get(g, []), class_dict, rosters, capacity_by_class_id)

@@ -24,6 +24,7 @@ from __future__ import annotations
 import csv
 import json
 import os
+import hmac
 import random
 import traceback
 from dataclasses import dataclass
@@ -39,8 +40,11 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 # SQLAlchemy (works with sqlite or postgres)
-from sqlalchemy import Column, DateTime, Integer, String, Text, create_engine, select
-from sqlalchemy.orm import Session, declarative_base, sessionmaker
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from full_project.database import Base, engine, get_db
+from models import LotteryResult, StudentSubmission
 
 
 # ============================================================
@@ -54,7 +58,14 @@ IMPORTANT_DIR = BASE_DIR / "important_files"
 TIDY_CSV_PATH = IMPORTANT_DIR / "davidson_courses_tidy.csv"
 
 # Optional: if you prefer a different tidy filename:
-ALT_TIDY_CSV_PATH = IMPORTANT_DIR / "davidson_courses_normalized.csv"
+ALT_TIDY_CSV_PATH = BASE_DIR / "davidson_courses_tidy.csv"  # fallback if you keep the CSV at repo root
+# Optional env override (useful on DigitalOcean if you mount a volume or rename the file)
+COURSES_CSV_ENV = (os.getenv("COURSES_CSV") or os.getenv("TIDY_CSV_PATH") or "").strip()
+if COURSES_CSV_ENV:
+    p = Path(COURSES_CSV_ENV)
+    if not p.is_absolute():
+        p = BASE_DIR / p
+    TIDY_CSV_PATH = p
 
 # Admin token (optional). If set, admin endpoints require it.
 ADMIN_TOKEN = os.getenv("ADMIN_TOKEN", "").strip()
@@ -226,78 +237,46 @@ def load_courses_from_tidy_csv(path: Path) -> List[Course]:
     return courses
 
 
-def load_courses_best_effort() -> List[Course]:
-    """
-    Tries the main tidy CSV path, then alternates. Never throws uncaught errors.
-    """
-    try:
-        return load_courses_from_tidy_csv(TIDY_CSV_PATH)
-    except FileNotFoundError:
-        if ALT_TIDY_CSV_PATH.exists():
-            return load_courses_from_tidy_csv(ALT_TIDY_CSV_PATH)
-        raise
-    except Exception:
-        raise
+_COURSE_CACHE: Dict[str, Any] = {"path": None, "mtime": None, "courses": None}
+
+def _resolve_tidy_csv_path() -> Path:
+    if TIDY_CSV_PATH.exists():
+        return TIDY_CSV_PATH
+    if ALT_TIDY_CSV_PATH.exists():
+        return ALT_TIDY_CSV_PATH
+    raise FileNotFoundError(
+        f"Tidy CSV not found. Looked for:\n- {TIDY_CSV_PATH}\n- {ALT_TIDY_CSV_PATH}\n"
+        "Tip: bundle it under ./important_files or set COURSES_CSV / TIDY_CSV_PATH env var."
+    )
+
+def load_courses_best_effort(*, force_reload: bool = False) -> List[Course]:
+    """Load courses from the tidy CSV, with a simple mtime-based cache."""
+    path = _resolve_tidy_csv_path()
+    mtime = path.stat().st_mtime if path.exists() else None
+
+    if (
+        not force_reload
+        and _COURSE_CACHE["courses"] is not None
+        and _COURSE_CACHE["path"] == str(path)
+        and _COURSE_CACHE["mtime"] == mtime
+    ):
+        return _COURSE_CACHE["courses"]
+
+    courses = load_courses_from_tidy_csv(path)
+    _COURSE_CACHE.update({"path": str(path), "mtime": mtime, "courses": courses})
+    return courses
 
 
 # ============================================================
 # Database (Postgres on DO, SQLite locally)
 # ============================================================
-def normalize_db_url(url: str) -> str:
-    url = (url or "").strip()
-    if not url:
-        return ""
-    # DigitalOcean sometimes gives postgres:// which SQLAlchemy prefers postgresql://
-    if url.startswith("postgres://"):
-        url = url.replace("postgres://", "postgresql+psycopg2://", 1)
-    if url.startswith("postgresql://"):
-        url = url.replace("postgresql://", "postgresql+psycopg2://", 1)
-    return url
-
-
-DATABASE_URL = normalize_db_url(os.getenv("DATABASE_URL", "")) or f"sqlite:///{BASE_DIR / 'app.db'}"
-
-engine = create_engine(
-    DATABASE_URL,
-    pool_pre_ping=True,
-    future=True,
-)
-
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
-Base = declarative_base()
-
-
-class StudentSubmission(Base):
-    __tablename__ = "student_submissions"
-
-    student_id = Column(String, primary_key=True)
-    grade = Column(Integer, nullable=False)
-    payload_json = Column(Text, nullable=False)  # stores picks + extra fields
-    updated_at = Column(DateTime(timezone=True), nullable=False, default=utcnow)
-
-
-class LotteryResult(Base):
-    __tablename__ = "lottery_results"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    run_id = Column(String, nullable=False, index=True)
-    student_id = Column(String, nullable=False, index=True)
-    grade = Column(Integer, nullable=False)
-    lottery_number = Column(Integer, nullable=False)
-    result_json = Column(Text, nullable=False)  # stores assignments + metadata
-    created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow)
-
-
 def init_db() -> None:
+    # Creates tables if they don't exist. (In production, consider migrations.)
     Base.metadata.create_all(bind=engine)
 
-
-def db_session() -> Session:
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+def db_session():
+    # Backwards-compatible wrapper for Depends(db_session) throughout this file.
+    yield from get_db()
 
 
 # ============================================================
@@ -326,7 +305,7 @@ class PicksPayload(BaseModel):
         sid = d.get("student_id") or d.get("studentId")
         if not sid and isinstance(d.get("student"), dict):
             sid = d["student"].get("student_id") or d["student"].get("id") or d["student"].get("studentId")
-        sid = _clean(sid) or "S000"
+        sid = _clean(sid)
 
         # grade
         grade = d.get("grade")
@@ -392,7 +371,7 @@ app = FastAPI(title="Web Choice API", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # tighten later
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -428,20 +407,25 @@ async def global_exception_handler(request: Request, exc: Exception):
 # ============================================================
 @app.get("/", response_class=HTMLResponse)
 def index():
-    idx = STATIC_DIR / "index.html"
-    if idx.exists():
-        return FileResponse(str(idx))
+    candidates = [STATIC_DIR / "index.html", BASE_DIR / "index.html"]
+    for idx in candidates:
+        if idx.exists():
+            return FileResponse(str(idx))
     return HTMLResponse(
-        "<h1>Server running</h1><p>Missing static/index.html</p>",
+        "<h1>Server running</h1><p>Missing index.html (looked in ./static and repo root)</p>",
         status_code=200,
     )
 
 
 @app.get("/favicon.ico")
 def favicon():
-    ico = STATIC_DIR / "favicon.ico"
-    if ico.exists():
-        return FileResponse(str(ico))
+    candidates = [
+        STATIC_DIR / "favicon.ico",
+        BASE_DIR / "favicon.ico",
+    ]
+    for ico in candidates:
+        if ico.exists():
+            return FileResponse(str(ico))
     # Avoid 404 spam
     return Response(status_code=204)
 
@@ -463,14 +447,15 @@ def health():
 @app.get("/api/courses")
 @app.get("/api/reload_courses")
 @app.get("/api/reload-courses")
-def api_classes(wrap: bool = Query(default=False)):
+def api_classes(request: Request, wrap: bool = Query(default=False)):
     """
     IMPORTANT:
     - Default returns a JSON ARRAY so your frontend can do: for (const c of classes) ...
     - If you want wrapped format: /api/classes?wrap=1
     """
     try:
-        courses = load_courses_best_effort()
+        force_reload = "reload" in str(request.url.path)
+        courses = load_courses_best_effort(force_reload=force_reload)
         payload = [c.to_dict() for c in courses]
         if wrap:
             return {"ok": True, "count": len(payload), "classes": payload}
@@ -514,6 +499,9 @@ def submit_picks(raw: Dict[str, Any] = Body(...), db: Session = Depends(db_sessi
     """
     payload = PicksPayload.from_any(raw)
     now = utcnow()
+    if not payload.student_id:
+        raise HTTPException(status_code=400, detail="student_id is required")
+
 
     stored = {
         "student_id": payload.student_id,
@@ -548,7 +536,11 @@ def get_picks(student_id: str, db: Session = Depends(db_session)):
     row = db.get(StudentSubmission, student_id)
     if not row:
         return {"ok": False, "detail": "No picks submitted yet."}
-    return {"ok": True, "student_id": student_id, "grade": row.grade, **json.loads(row.payload_json)}
+    try:
+        payload = json.loads(row.payload_json)
+    except Exception:
+        payload = {"raw": row.payload_json}
+    return {"ok": True, "student_id": student_id, "grade": row.grade, **payload}
 
 
 @app.get("/api/submissions")
@@ -572,15 +564,22 @@ def list_submissions(db: Session = Depends(db_session)):
 # ============================================================
 # Lottery logic
 # ============================================================
+def _extract_admin_token(request: Request) -> str:
+    token = (request.headers.get("X-Admin-Token") or "").strip()
+    if not token:
+        auth = (request.headers.get("Authorization") or "").strip()
+        if auth.lower().startswith("bearer "):
+            token = auth[7:].strip()
+    if not token:
+        token = (request.query_params.get("admin_token") or "").strip()
+    return token
+
+
 def require_admin(request: Request) -> None:
-    """
-    If ADMIN_TOKEN is set, require it via header: X-Admin-Token: <token>
-    If not set, allow (for development/testing).
-    """
     if not ADMIN_TOKEN:
         return
-    token = request.headers.get("X-Admin-Token", "").strip()
-    if token != ADMIN_TOKEN:
+    token = _extract_admin_token(request)
+    if not token or not hmac.compare_digest(token, ADMIN_TOKEN):
         raise HTTPException(status_code=401, detail="Missing/invalid admin token")
 
 
@@ -790,7 +789,10 @@ def get_results_path(student_id: str, db: Session = Depends(db_session)):
         return {"ok": False, "detail": "No results yet. Admin must run the global lottery."}
 
     r = rows[0]
-    payload = json.loads(r.result_json)
+    try:
+        payload = json.loads(r.result_json)
+    except Exception:
+        payload = {"raw": r.result_json}
     return {
         "ok": True,
         "run_id": r.run_id,

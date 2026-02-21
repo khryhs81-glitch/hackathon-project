@@ -1,10 +1,20 @@
+"""Convert scraper output (normalized CSV) into a tidy CSV used by the web app.
+
+Defaults are relative to ./important_files so you can deploy the app with the CSV bundled.
+"""
+
+import argparse
 import csv
 import json
 from pathlib import Path
-from typing import Any, Optional, Tuple
+from typing import Any, Optional, Tuple, Union
 
-DEFAULT_SRC = "davidson_courses_normalized.csv"
-DEFAULT_OUT = "davidson_courses_tidy.csv"
+
+BASE_DIR = Path(__file__).resolve().parent
+IMPORTANT_DIR = BASE_DIR / "important_files"
+
+DEFAULT_SRC: Path = IMPORTANT_DIR / "davidson_courses_normalized.csv"
+DEFAULT_OUT: Path = IMPORTANT_DIR / "davidson_courses_tidy.csv"
 
 
 def parse_json_cell(s: Any) -> Any:
@@ -84,9 +94,7 @@ def format_instructors(instr_cell: Any) -> str:
 
 
 def pick_meeting_fields(meetings_cell: Any) -> Tuple[str, str, str, str, str]:
-    """
-    Returns: (weekdays, start_time, end_time, building, room)
-    """
+    """Returns: (weekdays, start_time, end_time, building, room)."""
     meetings = parse_json_cell(meetings_cell)
     if not meetings:
         return ("", "", "", "", "")
@@ -108,7 +116,6 @@ def pick_meeting_fields(meetings_cell: Any) -> Tuple[str, str, str, str, str]:
         building = building_obj.strip()
 
     room = str(m.get("room") or "").strip()
-
     return (weekdays, start, end, building, room)
 
 
@@ -125,14 +132,10 @@ def to_int(x: Any) -> Optional[int]:
 
 
 def make_tidy_csv(
-    src: str | Path = DEFAULT_SRC,
-    out: str | Path = DEFAULT_OUT,
+    src: Union[str, Path] = DEFAULT_SRC,
+    out: Union[str, Path] = DEFAULT_OUT,
 ) -> Path:
-    """
-    Convert scraper's normalized CSV -> tidy CSV (display columns + machine columns).
-
-    Returns output Path.
-    """
+    """Convert scraper's normalized CSV -> tidy CSV (display columns + machine columns)."""
     src_path = Path(src)
     out_path = Path(out)
 
@@ -146,11 +149,30 @@ def make_tidy_csv(
 
         fieldnames = [
             # human-friendly columns (compat)
-            "Crs & Sec", "CRN", "Title", "Cred", "Days", "Time", "Room", "Instructor", "Notes", "Grad. Reqs.", "Seats Left",
+            "Crs & Sec",
+            "CRN",
+            "Title",
+            "Cred",
+            "Days",
+            "Time",
+            "Room",
+            "Instructor",
+            "Notes",
+            "Grad. Reqs.",
+            "Seats Left",
             # machine-friendly columns
-            "subject", "course_number", "section", "credits",
-            "weekdays", "start_time", "end_time", "building", "room",
-            "enrolled", "capacity", "seats_remaining",
+            "subject",
+            "course_number",
+            "section",
+            "credits",
+            "weekdays",
+            "start_time",
+            "end_time",
+            "building",
+            "room",
+            "enrolled",
+            "capacity",
+            "seats_remaining",
         ]
 
         w = csv.DictWriter(f_out, fieldnames=fieldnames)
@@ -172,39 +194,54 @@ def make_tidy_csv(
             capacity = to_int(row.get("capacity"))
             seats_remaining = to_int(row.get("seats_remaining"))
 
-            seats_disp = f"{enrolled}/{capacity}" if (enrolled is not None and capacity is not None) else (str(enrolled) if enrolled is not None else "")
+            seats_disp = (
+                f"{enrolled}/{capacity}"
+                if (enrolled is not None and capacity is not None)
+                else (str(enrolled) if enrolled is not None else "")
+            )
 
-            w.writerow({
-                # display
-                "Crs & Sec": crs_sec,
-                "CRN": row.get("crn") or "",
-                "Title": row.get("title") or "",
-                "Cred": row.get("credits") or "",
-                "Days": weekdays,
-                "Time": time_str,
-                "Room": room_str,
-                "Instructor": instr_str,
-                "Notes": row.get("notes") or "",
-                "Grad. Reqs.": "",
-                "Seats Left": seats_disp,
-                # machine
-                "subject": subj,
-                "course_number": course_num if course_num is not None else "",
-                "section": section,
-                "credits": row.get("credits") or "",
-                "weekdays": weekdays,
-                "start_time": start_time,
-                "end_time": end_time,
-                "building": building,
-                "room": room,
-                "enrolled": enrolled if enrolled is not None else "",
-                "capacity": capacity if capacity is not None else "",
-                "seats_remaining": seats_remaining if seats_remaining is not None else "",
-            })
+            w.writerow(
+                {
+                    # display
+                    "Crs & Sec": crs_sec,
+                    "CRN": row.get("crn") or "",
+                    "Title": row.get("title") or "",
+                    "Cred": row.get("credits") or "",
+                    "Days": weekdays,
+                    "Time": time_str,
+                    "Room": room_str,
+                    "Instructor": instr_str,
+                    "Notes": row.get("notes") or "",
+                    "Grad. Reqs.": "",
+                    "Seats Left": seats_disp,
+                    # machine
+                    "subject": subj,
+                    "course_number": course_num if course_num is not None else "",
+                    "section": section,
+                    "credits": row.get("credits") or "",
+                    "weekdays": weekdays,
+                    "start_time": start_time,
+                    "end_time": end_time,
+                    "building": building,
+                    "room": room,
+                    "enrolled": enrolled if enrolled is not None else "",
+                    "capacity": capacity if capacity is not None else "",
+                    "seats_remaining": seats_remaining if seats_remaining is not None else "",
+                }
+            )
 
     return out_path
 
 
-if __name__ == "__main__":
-    out_path = make_tidy_csv(DEFAULT_SRC, DEFAULT_OUT)
+def _cli() -> None:
+    p = argparse.ArgumentParser()
+    p.add_argument("--src", default=str(DEFAULT_SRC), help="Path to normalized CSV")
+    p.add_argument("--out", default=str(DEFAULT_OUT), help="Path to tidy CSV")
+    args = p.parse_args()
+
+    out_path = make_tidy_csv(args.src, args.out)
     print(f"Saved tidy CSV: {out_path}")
+
+
+if __name__ == "__main__":
+    _cli()

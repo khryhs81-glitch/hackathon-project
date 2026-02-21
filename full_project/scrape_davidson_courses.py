@@ -8,7 +8,15 @@ from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
-from playwright.async_api import async_playwright
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent
+IMPORTANT_DIR = BASE_DIR / "important_files"
+
+try:
+    from playwright.async_api import async_playwright
+except Exception:  # pragma: no cover
+    async_playwright = None  # type: ignore
 
 JSONType = Union[Dict[str, Any], List[Any], str, int, float, bool, None]
 
@@ -500,11 +508,22 @@ async def run(
     discover_wait: int,
     test_seats_available: Optional[int] = None,  # NEW
 ):
+    if async_playwright is None:
+        raise RuntimeError(
+            "playwright is not installed. Install it (and run playwright install) to use this scraper."
+        )
     schedule_url = f"https://course-schedule.davidson.edu/#/schedule?limit={limit}&offset=0&term_code={term_code}"
 
-    raw_path = f"{out_prefix}_raw.jsonl"
-    norm_path = f"{out_prefix}_normalized.jsonl"
-    csv_path = f"{out_prefix}_normalized.csv"
+    prefix = Path(out_prefix)
+    out_dir = prefix.parent
+    base = prefix.name
+    if str(out_dir) == ".":
+        out_dir = Path(".")
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    raw_path = out_dir / f"{base}_raw.jsonl"
+    norm_path = out_dir / f"{base}_normalized.jsonl"
+    csv_path = out_dir / f"{base}_normalized.csv"
 
     seen_ids = set()
     total = 0
@@ -523,7 +542,7 @@ async def run(
         print(f"  score:  {discovered.records_score:.2f}")
         print(f"  first page records: {len(first_records)}")
 
-        csv_file = open(csv_path, "w", newline="", encoding="utf-8")
+        csv_file = csv_path.open("w", newline="", encoding="utf-8")
         csv_writer = csv.DictWriter(
             csv_file,
             fieldnames=[
@@ -547,7 +566,7 @@ async def run(
         )
         csv_writer.writeheader()
 
-        with open(raw_path, "w", encoding="utf-8") as f_raw, open(norm_path, "w", encoding="utf-8") as f_norm:
+        with raw_path.open("w", encoding="utf-8") as f_raw, norm_path.open("w", encoding="utf-8") as f_norm:
 
             def write_record(rec: Dict[str, Any]):
                 nonlocal total
@@ -610,7 +629,7 @@ def main():
     ap = argparse.ArgumentParser(description="Scrape Davidson course schedule and export CSV with seats/capacity.")
     ap.add_argument("--term", default="202502", help="Term code (default: 202502)")
     ap.add_argument("--limit", type=int, default=50, help="Page size (default: 50)")
-    ap.add_argument("--out", default="davidson_courses", help="Output prefix (default: davidson_courses)")
+    ap.add_argument("--out", default=str(IMPORTANT_DIR / "davidson_courses"), help="Output prefix (default: important_files/davidson_courses)")
     ap.add_argument("--headless", action="store_true", help="Run headless")
     ap.add_argument("--discover-wait", type=int, default=10000, help="ms to wait during discovery (default: 10000)")
 
