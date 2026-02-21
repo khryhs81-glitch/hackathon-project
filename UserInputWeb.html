@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Class Lottery Selection</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f6f9;
+    margin: 0;
+    padding: 20px;
+}
+.container {
+    max-width: 900px;
+    margin: auto;
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+h1 { text-align: center; }
+label { font-weight: bold; }
+.choice-section {
+    margin-bottom: 25px;
+    padding: 15px;
+    background: #f0f3ff;
+    border-radius: 8px;
+}
+.rank-row {
+    display: flex;
+    margin-bottom: 8px;
+}
+.rank-row select {
+    flex: 1;
+    padding: 8px;
+    margin-right: 10px;
+}
+button {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+.add-btn {
+    background-color: #4CAF50;
+    color: white;
+}
+.remove-btn {
+    background-color: #e74c3c;
+    color: white;
+}
+.submit-btn {
+    background-color: #007BFF;
+    color: white;
+    width: 100%;
+    font-size: 16px;
+    padding: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <h1>Class Lottery Selection</h1>
+
+    <form id="classForm">
+
+        <label>Student Name:</label>
+        <input type="text" id="studentName" required style="width:100%; padding:8px; margin-bottom:15px;">
+
+        <label>Student ID:</label>
+        <input type="text" id="studentID" required style="width:100%; padding:8px; margin-bottom:15px;">
+
+        <label>College Class Year:</label>
+        <select id="classYear" required style="width:100%; padding:8px; margin-bottom:20px;">
+            <option value="">-- Select Year --</option>
+            <option value="Freshman">Freshman</option>
+            <option value="Sophomore">Sophomore</option>
+            <option value="Junior">Junior</option>
+            <option value="Senior">Senior</option>
+        </select>
+
+        <div id="choicesContainer"></div>
+
+        <button type="submit" class="submit-btn">Submit Choices</button>
+
+    </form>
+
+    <div id="results" style="margin-top:20px;"></div>
+</div>
+
+<script>
+
+const MAX_PER_CHOICE = 5;
+
+const allClasses = [
+    "Biology","Chemistry","Physics","Algebra","Geometry",
+    "World History","US History","Art","Music","Computer Science",
+    "Economics","Statistics","English","Spanish","Psychology"
+];
+
+const choicesContainer = document.getElementById("choicesContainer");
+
+for (let i = 1; i <= 5; i++) {
+    createChoiceSection(i);
+}
+
+function createChoiceSection(choiceNumber) {
+    const section = document.createElement("div");
+    section.className = "choice-section";
+    section.id = "choice-" + choiceNumber;
+
+    section.innerHTML = `
+        <h3>Choice ${choiceNumber} (Select 5 Ranked Classes)</h3>
+        <div class="rank-container"></div>
+        <button type="button" class="add-btn" onclick="addRank(this)">Add Class Preference</button>
+    `;
+
+    choicesContainer.appendChild(section);
+    addRank(section.querySelector(".add-btn"));
+}
+
+function addRank(button) {
+    const container = button.parentElement.querySelector(".rank-container");
+    if (container.children.length >= MAX_PER_CHOICE) return;
+
+    const rankRow = document.createElement("div");
+    rankRow.className = "rank-row";
+
+    const select = document.createElement("select");
+    select.required = true;
+    select.innerHTML = `<option value="">-- Select Class --</option>` +
+        allClasses.map(c => `<option value="${c}">${c}</option>`).join("");
+
+    select.addEventListener("change", updateDisabledOptions);
+
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "remove-btn";
+    removeBtn.textContent = "X";
+    removeBtn.onclick = function() {
+        rankRow.remove();
+        updateDisabledOptions();
+        toggleAddButton(button);
+    };
+
+    rankRow.appendChild(select);
+    rankRow.appendChild(removeBtn);
+    container.appendChild(rankRow);
+
+    toggleAddButton(button);
+}
+
+function toggleAddButton(button) {
+    const container = button.parentElement.querySelector(".rank-container");
+    button.style.display =
+        container.children.length >= MAX_PER_CHOICE ? "none" : "inline-block";
+}
+
+function updateDisabledOptions() {
+    const selectedValues = [];
+
+    document.querySelectorAll("select").forEach(select => {
+        if (select.value) selectedValues.push(select.value);
+    });
+
+    document.querySelectorAll(".rank-row select").forEach(select => {
+        const currentValue = select.value;
+        Array.from(select.options).forEach(option => {
+            if (option.value === "") return;
+            option.disabled =
+                selectedValues.includes(option.value) &&
+                option.value !== currentValue;
+        });
+    });
+}
+
+document.getElementById("classForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+
+    const studentData = {
+        name: document.getElementById("studentName").value,
+        id: document.getElementById("studentID").value,
+        classYear: document.getElementById("classYear").value,
+        choices: []
+    };
+
+    for (let i = 1; i <= 5; i++) {
+        const selects = document.querySelectorAll(`#choice-${i} select`);
+
+        if (selects.length !== MAX_PER_CHOICE) {
+            alert(`Choice ${i} must have exactly 5 class preferences.`);
+            return;
+        }
+
+        const ranks = [];
+        for (let select of selects) {
+            if (select.value === "") {
+                alert(`Please complete all selections in Choice ${i}.`);
+                return;
+            }
+            ranks.push(select.value);
+        }
+
+        studentData.choices.push({
+            choiceNumber: i,
+            rankedClasses: ranks
+        });
+    }
+
+    fetch("/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(studentData)
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById("results").innerHTML =
+            "<h2>Submission Successful</h2>";
+        console.log(data);
+    })
+    .catch(err => {
+        alert("Error submitting choices.");
+        console.error(err);
+    });
+
+});
+
+</script>
+
+</body>
+</html>
